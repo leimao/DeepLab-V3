@@ -22,18 +22,8 @@ class DeepLab(object):
         self.pre_trained_model = pre_trained_model
         self.batch_norm_decay = batch_norm_decay
 
-        if self.base_architecture == 'resnet_v2_101':
-            self.base_model = resnet_v2.resnet_v2_101
-            assert self.image_shape == [513, 513, 3], 'image shape does not match to ResNet-101 inputs shape'
-            self.feature_map = self.resnet_initializer()
-            self.outputs = self.model_initializer()
-
-
-        elif self.base_architecture == 'resnet_v2_50':
-            self.base_model = resnet_v2.resnet_v2_50
-            assert self.image_shape == [224, 224, 3], 'image shape does not match to ResNet-50 inputs shape'
-            self.feature_map = self.resnet_initializer()
-            self.outputs = self.model_initializer()
+        self.feature_map = self.backbone_initializer()
+        self.outputs = self.model_initializer()
 
         self.learning_rate = tf.placeholder(tf.float32, None, name = 'learning_rate')
         self.loss = self.loss_initializer()
@@ -44,7 +34,6 @@ class DeepLab(object):
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
 
-
         if self.is_training == True:
             self.train_step = 0
             now = datetime.now()
@@ -52,6 +41,19 @@ class DeepLab(object):
             self.writer = tf.summary.FileWriter(self.log_dir, tf.get_default_graph())
             self.train_summaries, self.valid_summaries = self.summary()
 
+    def backbone_initializer(self):
+
+        if self.base_architecture == 'resnet_v2_101':
+            self.base_model = resnet_v2.resnet_v2_101
+            assert self.image_shape == [513, 513, 3], 'image shape does not match to ResNet-101 inputs shape'
+            feature_map = self.resnet_initializer()
+
+        elif self.base_architecture == 'resnet_v2_50':
+            self.base_model = resnet_v2.resnet_v2_50
+            assert self.image_shape == [224, 224, 3], 'image shape does not match to ResNet-50 inputs shape'
+            feature_map = self.resnet_initializer()
+
+        return feature_map
 
     def resnet_initializer(self):
 
@@ -98,7 +100,6 @@ class DeepLab(object):
 
         return train_loss_summary, valid_loss_summary
 
-
     def train(self, inputs, labels, learning_rate):
 
         _, train_loss, summaries = self.sess.run([self.optimizer, self.loss, self.train_summaries], 
@@ -134,7 +135,6 @@ class DeepLab(object):
     def load(self, filepath):
 
         self.saver.restore(self.sess, filepath)
-
 
 
 if __name__ == '__main__':
