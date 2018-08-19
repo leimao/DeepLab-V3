@@ -4,7 +4,7 @@ from datetime import datetime
 import tensorflow as tf
 from tensorflow.contrib.slim.nets import resnet_v2
 
-from utils import atrous_spatial_pyramid_pooling
+from modules import atrous_spatial_pyramid_pooling
 
 class DeepLab(object):
 
@@ -73,7 +73,7 @@ class DeepLab(object):
     def model_initializer(self):
 
         with tf.variable_scope('encoder', reuse = None):
-            pools = atrous_spatial_pyramid_pooling(inputs = self.feature_map)
+            pools = atrous_spatial_pyramid_pooling(inputs = self.feature_map, filters = 256)
             logits = tf.layers.conv2d(inputs = pools, filters = self.num_classes, kernel_size = (1, 1), activation = None, name = 'logits')
             outputs = tf.image.resize_bilinear(images = logits, size = (self.image_shape[0], self.image_shape[1]), name = 'upsampled')
 
@@ -102,13 +102,13 @@ class DeepLab(object):
 
     def train(self, inputs, labels, learning_rate):
 
-        _, train_loss, summaries = self.sess.run([self.optimizer, self.loss, self.train_summaries], 
+        _, train_loss, outputs, summaries = self.sess.run([self.optimizer, self.loss, self.outputs, self.train_summaries], 
             feed_dict = {self.inputs: inputs, self.labels: labels, self.learning_rate: learning_rate})
 
         self.writer.add_summary(summaries, self.train_step)
         self.train_step += 1
 
-        return train_loss
+        return outputs, train_loss
 
     def validate(self, inputs, labels):
 
