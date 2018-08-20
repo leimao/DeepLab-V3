@@ -8,7 +8,7 @@ from modules import atrous_spatial_pyramid_pooling
 
 class DeepLab(object):
 
-    def __init__(self, is_training, num_classes, ignore_label = 255, image_shape = [513, 513, 3], base_architecture = 'resnet_v2_101', batch_norm_decay = 0.9997, pre_trained_model = './models/resnet_v2_101_2017_04_14/resnet_v2_101.ckpt', log_dir = './log'):
+    def __init__(self, is_training, num_classes, ignore_label = 255, image_shape = [513, 513, 3], base_architecture = 'resnet_v2_101', batch_norm_decay = 0.9997, pre_trained_model = './models/resnet_101/resnet_v2_101.ckpt', log_dir = './log'):
 
         self.is_training = is_training
         self.num_classes = num_classes
@@ -53,6 +53,8 @@ class DeepLab(object):
             self.base_model = resnet_v2.resnet_v2_50
             assert self.image_shape == [224, 224, 3], 'image shape does not match to ResNet-50 inputs shape'
             feature_map = self.resnet_initializer()
+        else:
+            raise Exception('Unknown backbone architecture')
 
         return feature_map
 
@@ -82,23 +84,20 @@ class DeepLab(object):
 
     def loss_initializer(self):
 
-        #outputs_linear = tf.reshape(tensor = self.outputs, shape = [-1])
         labels_linear = tf.reshape(tensor = self.labels, shape = [-1])
-
         not_ignore_mask = tf.to_float(tf.not_equal(labels_linear, self.ignore_label))
-
+        # The locations represented by indices in indices take value on_value, while all other locations take value off_value.
+        # For example, ignore label 255 in VOC2012 dataset will be set to zero vector in onehot encoding (looks like the not ignore mask is not required)
         onehot_labels = tf.one_hot(indices = labels_linear, depth = self.num_classes, on_value = 1.0, off_value = 0.0)
 
         loss = tf.losses.softmax_cross_entropy(onehot_labels = onehot_labels, logits = tf.reshape(self.outputs, shape=[-1, self.num_classes]), weights = not_ignore_mask)
-
-
-        #loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits = self.outputs, labels = self.labels), name = 'cross_entropy_loss')
 
         return loss
 
     def optimizer_initializer(self):
 
         optimizer = tf.train.AdamOptimizer(learning_rate = self.learning_rate).minimize(self.loss)
+
         return optimizer
 
     def summary(self):

@@ -361,6 +361,11 @@ if __name__ == '__main__':
     print("Time Elapsed: %02d:%02d:%02d" % (time_elapsed // 3600, (time_elapsed % 3600 // 60), (time_elapsed % 60 // 1)))
 
 
+
+
+
+
+
     '''
     images, labels = train_iterator.next_minibatch()
 
