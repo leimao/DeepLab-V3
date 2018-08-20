@@ -228,7 +228,7 @@ def image_augmentaion(image, label, output_size, scale_factor = 1.5):
     return image_augmented, label_augmented
 
 
-class DataPrerocess(object):
+class DataPrerocessor(object):
 
     def __init__(self, channel_means, output_size = [513, 513], scale_factor = 1.5):
 
@@ -345,7 +345,7 @@ if __name__ == '__main__':
     channel_means = save_load_means(means_filename = './models/channel_means.npz', image_filenames = train_dataset.image_filenames, recalculate = False)
     print(channel_means)
 
-    voc2012_preprocessor = DataPrerocess(channel_means = channel_means, output_size = [513, 513], scale_factor = 1.5)
+    voc2012_preprocessor = DataPrerocessor(channel_means = channel_means, output_size = [513, 513], scale_factor = 1.5)
 
     # Single thread is faster :(
     train_iterator = Iterator(dataset = train_dataset, minibatch_size = 16, process_func = voc2012_preprocessor.preprocess, random_seed = None, scramble = True, num_jobs = 1)

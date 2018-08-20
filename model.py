@@ -8,16 +8,17 @@ from modules import atrous_spatial_pyramid_pooling
 
 class DeepLab(object):
 
-    def __init__(self, is_training, num_classes, image_shape = [513, 513, 3], base_architecture = 'resnet_v2_101', batch_norm_decay = 0.9997, pre_trained_model = './models/resnet_v2_101_2017_04_14/resnet_v2_101.ckpt', log_dir = './log'):
+    def __init__(self, is_training, num_classes, ignore_label = 255, image_shape = [513, 513, 3], base_architecture = 'resnet_v2_101', batch_norm_decay = 0.9997, pre_trained_model = './models/resnet_v2_101_2017_04_14/resnet_v2_101.ckpt', log_dir = './log'):
 
         self.is_training = is_training
         self.num_classes = num_classes
+        self.ignore_label = ignore_label
         self.base_architecture = base_architecture
         self.image_shape = image_shape
         self.inputs_shape = [None] + self.image_shape
         self.labels_shape = [None, self.image_shape[0], self.image_shape[1], 1]
         self.inputs = tf.placeholder(tf.float32, shape = self.inputs_shape, name = 'inputs')
-        self.labels = tf.placeholder(tf.float32, shape = self.labels_shape
+        self.labels = tf.placeholder(tf.uint8, shape = self.labels_shape
             , name = 'labels')
         self.pre_trained_model = pre_trained_model
         self.batch_norm_decay = batch_norm_decay
@@ -81,7 +82,17 @@ class DeepLab(object):
 
     def loss_initializer(self):
 
-        loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits = self.outputs, labels = self.labels), name = 'cross_entropy_loss')
+        #outputs_linear = tf.reshape(tensor = self.outputs, shape = [-1])
+        labels_linear = tf.reshape(tensor = self.labels, shape = [-1])
+
+        not_ignore_mask = tf.to_float(tf.not_equal(labels_linear, self.ignore_label))
+
+        onehot_labels = tf.one_hot(indices = labels_linear, depth = self.num_classes, on_value = 1.0, off_value = 0.0)
+
+        loss = tf.losses.softmax_cross_entropy(onehot_labels = onehot_labels, logits = tf.reshape(self.outputs, shape=[-1, self.num_classes]), weights = not_ignore_mask)
+
+
+        #loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits = self.outputs, labels = self.labels), name = 'cross_entropy_loss')
 
         return loss
 
