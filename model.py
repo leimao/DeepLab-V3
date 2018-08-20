@@ -77,7 +77,7 @@ class DeepLab(object):
             logits = tf.layers.conv2d(inputs = pools, filters = self.num_classes, kernel_size = (1, 1), activation = None, name = 'logits')
             outputs = tf.image.resize_bilinear(images = logits, size = (self.image_shape[0], self.image_shape[1]), name = 'upsampled')
 
-            return outputs
+        return outputs
 
     def loss_initializer(self):
 
@@ -139,6 +139,6 @@ class DeepLab(object):
 
 if __name__ == '__main__':
     
-    deeplab = DeepLab(is_training = True, num_classes = 10, image_shape = [513, 513, 3], base_architecture = 'resnet_v2_101', batch_norm_decay = 0.9997, pre_trained_model = './models/resnet_v2_101_2017_04_14/resnet_v2_101.ckpt')
+    deeplab = DeepLab(is_training = True, num_classes = 10, image_shape = [513, 513, 3], base_architecture = 'resnet_v2_101', batch_norm_decay = 0.9997, pre_trained_model = './models/resnet_101/resnet_v2_101.ckpt')
     print('Graph compile successful.')
 
