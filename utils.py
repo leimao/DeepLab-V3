@@ -5,6 +5,7 @@ import os
 from tqdm import tqdm
 from PIL import Image
 from joblib import Parallel, delayed
+import time
 
 def image_channel_means(image_filenames):
     '''
@@ -322,8 +323,8 @@ def save_annotation(label, filename, add_colormap = True):
     else:
         colored_label = label
 
-    pil_image = Image.fromarray(colored_label.astype(dtype = np.uint8))
-    pil_image.save(filename)
+    image = Image.fromarray(colored_label.astype(dtype = np.uint8))
+    image.save(filename)
 
 
 
@@ -334,6 +335,8 @@ def save_annotation(label, filename, add_colormap = True):
 
 
 if __name__ == '__main__':
+
+    np.random.seed(0)
     
     train_dataset = Dataset(dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt', images_dir = './data/VOCdevkit/VOC2012/JPEGImages', labels_dir = './data/VOCdevkit/VOC2012/SegmentationClass', image_extension = '.jpg', label_extension = '.png')
     print(train_dataset.image_filenames)
@@ -344,16 +347,21 @@ if __name__ == '__main__':
 
     voc2012_preprocessor = DataPrerocess(channel_means = channel_means, output_size = [513, 513], scale_factor = 1.5)
 
-
-    train_iterator = Iterator(dataset = train_dataset, minibatch_size = 16, process_func = voc2012_preprocessor.preprocess, random_seed = None, scramble = True, num_jobs = 8)
+    # Single thread is faster :(
+    train_iterator = Iterator(dataset = train_dataset, minibatch_size = 16, process_func = voc2012_preprocessor.preprocess, random_seed = None, scramble = True, num_jobs = 1)
 
     # Test iterator
-    '''
-    while True:
+    time_start = time.time()
+    for i in range(10):
+        print(i)
         images, labels = train_iterator.next_minibatch()
-        print(images.shape, labels.shape)
-    '''
+        #print(images.shape, labels.shape)
+    time_end = time.time()
+    time_elapsed = time_end - time_start
+    print("Time Elapsed: %02d:%02d:%02d" % (time_elapsed // 3600, (time_elapsed % 3600 // 60), (time_elapsed % 60 // 1)))
 
+
+    '''
     images, labels = train_iterator.next_minibatch()
 
     print(images.dtype, labels.dtype)
@@ -370,6 +378,7 @@ if __name__ == '__main__':
 
 
         cv2.imwrite(str(i) + '.jpg', image)
+    '''
 
 
 
