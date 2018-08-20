@@ -21,18 +21,20 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
     voc2012_preprocessor = DataPrerocessor(channel_means = channel_means, output_size = [513, 513], scale_factor = 1.5)
 
     # Prepare dataset iterators
-    train_iterator = Iterator(dataset = train_dataset, minibatch_size = 16, process_func = voc2012_preprocessor.preprocess, random_seed = None, scramble = True, num_jobs = 1)
-    valid_iterator = Iterator(dataset = valid_dataset, minibatch_size = 16, process_func = voc2012_preprocessor.preprocess, random_seed = None, scramble = False, num_jobs = 1)
-    test_iterator = Iterator(dataset = train_dataset, minibatch_size = 16, process_func = voc2012_preprocessor.preprocess, random_seed = None, scramble = False, num_jobs = 1)
+    train_iterator = Iterator(dataset = train_dataset, minibatch_size = 1, process_func = voc2012_preprocessor.preprocess, random_seed = None, scramble = True, num_jobs = 1)
+    valid_iterator = Iterator(dataset = valid_dataset, minibatch_size = 1, process_func = voc2012_preprocessor.preprocess, random_seed = None, scramble = False, num_jobs = 1)
+    test_iterator = Iterator(dataset = train_dataset, minibatch_size = 1, process_func = voc2012_preprocessor.preprocess, random_seed = None, scramble = False, num_jobs = 1)
 
-    model = DeepLab(is_training = True, num_classes = 22, image_shape = [513, 513, 3], base_architecture = 'resnet_v2_101', batch_norm_decay = 0.9997, pre_trained_model = pre_trained_model)
+    model = DeepLab(is_training = True, num_classes = 21, image_shape = [513, 513, 3], base_architecture = 'resnet_v2_101', batch_norm_decay = 0.9997, pre_trained_model = pre_trained_model)
 
-    images, labels = train_iterator.next_minibatch()
-    print(image.dtype, labels.dtype)
+    #images, labels = train_iterator.next_minibatch()
+    #print(images.dtype, labels.dtype)
+    for i in range(100):
+        images, labels = train_iterator.next_minibatch()
+        outputs, train_loss = model.train(inputs = images, labels = labels, learning_rate = 0.001)
+        print('==================================')
+        print(train_loss)
 
-    outputs, train_loss = model.train(inputs = images, labels = labels, learning_rate = 0.001)
-    print('==================================')
-    print(train_loss)
 
 
 
