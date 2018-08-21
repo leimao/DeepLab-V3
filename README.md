@@ -1,1 +1,8 @@
-DeepLab_v3
+# DeepLab v3
+
+Lei Mao
+
+University of Chicago
+
+## Introduction
+
