@@ -252,7 +252,7 @@ class DataPrerocessor(object):
 
 ##################################################################################################################################
 '''
-The following image annotition saving codes are slightly modified from Google's official DeepLab repository.
+The following image annotition saving codes in the block are slightly modified from Google's official DeepLab repository.
 https://github.com/tensorflow/models/blob/master/research/deeplab/utils/get_dataset_colormap.py
 '''
 
@@ -325,6 +325,36 @@ def save_annotation(label, filename, add_colormap = True):
 
     image = Image.fromarray(colored_label.astype(dtype = np.uint8))
     image.save(filename)
+
+
+##################################################################################################################################
+
+
+def validation_demo(images, labels, predictions, demo_dir):
+
+    assert images.ndim == 4 and labels.ndim == 3 and predictions.ndim == 3
+
+    if not os.path.exists(demo_dir):
+        os.makedirs(demo_dir)
+
+    for i in range(len(images)):
+
+        cv2.imwrite(os.path.join(demo_dir, 'image_{}.jpg'.format(i)), images[i])
+        save_annotation(label = labels[i], filename = os.path.join(demo_dir, 'image_{}_label.png'.format(i)), add_colormap = True)
+        save_annotation(label = predictions[i], filename = os.path.join(demo_dir, 'image_{}_prediction.png'.format(i)), add_colormap = True)
+
+
+def mean_intersection_over_union(labels, predictions, ignore_label):
+
+    assert labels.ndim == 3 and labels.shape == predictions.shape
+
+    not_ignore_mask = np.not_equal(labels, ignore_label).astype(np.int)
+    num_valid_labels = np.sum(not_ignore_mask)
+    num_matched_labels = np.sum((labels == predictions) * not_ignore_mask)
+
+    mIOU = num_matched_labels / num_valid_labels
+
+    return num_matched_labels, num_valid_labels, mIOU
 
 
 
