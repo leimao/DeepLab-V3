@@ -1,7 +1,7 @@
 
 
 from utils import Dataset, Iterator, DataPrerocessor
-from utils import save_load_means, validation_demo, add_channel_means, mean_intersection_over_union
+from utils import save_load_means, validation_demo, add_channel_means, count_label_prediction_matches, mean_intersection_over_union
 
 from model import DeepLab
 
@@ -57,8 +57,8 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
         print('Start validation ...')
 
         valid_loss_total = 0
-        num_matched_labels_total = 0
-        num_valid_labels_total = 0
+        num_pixel_labels_total = np.zeros(num_classes)
+        num_pixel_correct_predictions_total = np.zeros(num_classes)
 
         for j in tqdm(range(np.ceil(valid_iterator.dataset_size / minibatch_size).astype(int))):
 
@@ -68,12 +68,12 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
             predictions = np.argmax(outputs, axis = -1)
             valid_loss_total += valid_loss * num_samples
 
-            num_matched_labels, num_valid_labels, _ = mean_intersection_over_union(labels = np.squeeze(labels, axis = -1), predictions = predictions, ignore_label = ignore_label)
+            num_pixel_labels, num_pixel_correct_predictions = count_label_prediction_matches(labels = np.squeeze(labels, axis = -1), predictions = predictions, num_classes = num_classes, ignore_label = ignore_label)
 
-            num_matched_labels_total += num_matched_labels
-            num_valid_labels_total += num_valid_labels
+            num_pixel_labels_total += num_pixel_labels
+            num_pixel_correct_predictions_total += num_pixel_correct_predictions
 
-        mean_IOU = num_matched_labels_total / num_valid_labels_total
+        mean_IOU = mean_intersection_over_union(num_pixel_labels = num_pixel_labels_total, num_pixel_correct_predictions = num_pixel_correct_predictions_total)
 
         validation_demo(images = images, labels = np.squeeze(labels, axis = -1), predictions = predictions, demo_dir = os.path.join(results_dir, 'validation_demo'))
 
