@@ -328,7 +328,9 @@ def save_annotation(label, filename, add_colormap = True):
 
 
 ##################################################################################################################################
-
+'''
+Evaluation
+'''
 
 def validation_demo(images, labels, predictions, demo_dir):
 
@@ -344,9 +346,56 @@ def validation_demo(images, labels, predictions, demo_dir):
         save_annotation(label = predictions[i], filename = os.path.join(demo_dir, 'image_{}_prediction.png'.format(i)), add_colormap = True)
 
 
-def mean_intersection_over_union(labels, predictions, ignore_label):
+def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):
+    '''
+    Pixel intersection-over-union averaged across number of classes.
+    Assuming valid labels are from 0 to num_classes - 1. 
+    '''
 
     assert labels.ndim == 3 and labels.shape == predictions.shape
+
+    num_pixel_labels = np.zeros(num_classes)
+    num_pixel_correct_predictions = np.zeros(num_classes)
+
+    not_ignore_mask = np.not_equal(labels, ignore_label).astype(np.int)
+    matched_pixels = (labels == predictions) * not_ignore_mask
+
+    for i in range(num_classes):
+
+        class_mask = (labels == i)
+        num_pixel_labels[i] += np.sum(class_mask)
+        num_pixel_correct_predictions[i] += np.sum(matched_pixels * class_mask)
+
+    return num_pixel_labels, num_pixel_correct_predictions
+
+
+
+def mean_intersection_over_union(num_pixel_labels, num_pixel_correct_predictions):
+
+    num_classes = len(num_pixel_labels)
+
+    num_existing_classes = 0
+    iou_sum = 0
+
+    for i in range(num_classes):
+
+        if num_pixel_labels[i] == 0:
+            continue
+
+        num_existing_classes += 1
+        iou_sum += num_pixel_correct_predictions[i] / num_pixel_labels[i]
+
+    assert num_existing_classes != 0
+    
+    mean_iou = iou_sum / num_existing_classes
+
+    return mean_iou
+
+
+'''
+def mean_intersection_over_union(labels, predictions, ignore_label):
+    # Wrong implementation
+    
 
     not_ignore_mask = np.not_equal(labels, ignore_label).astype(np.int)
     num_valid_labels = np.sum(not_ignore_mask)
@@ -355,6 +404,8 @@ def mean_intersection_over_union(labels, predictions, ignore_label):
     mIOU = num_matched_labels / num_valid_labels
 
     return num_matched_labels, num_valid_labels, mIOU
+'''
+
 
 
 
