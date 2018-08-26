@@ -125,6 +125,17 @@ class Iterator(object):
         self.image_filenames = self.image_filenames[idx]
         self.label_filenames = self.label_filenames[idx]
 
+    def next_raw_data(self):
+        image_filename = self.image_filenames[self.current_index]
+        label_filename = self.label_filenames[self.current_index]
+        self.current_index += 1
+        if self.current_index > self.dataset_size:
+            self.current_index = 0
+        image = read_image(image_filename = image_filename)
+        label = read_label(label_filename = label_filename)
+
+        return image, label
+
     def next_minibatch(self):
 
         image_filenames_minibatch = self.image_filenames[self.current_index : self.current_index + self.minibatch_size]
@@ -169,14 +180,14 @@ def add_channel_means(image, channel_means):
     return image + np.reshape(channel_means, (1,1,3))
 
 
-def flip_image(image, label):
+def flip_image_and_label(image, label):
 
     image_flipped = np.fliplr(image)
     label_flipped = np.fliplr(label)
 
     return image_flipped, label_flipped
 
-def resize_image(image, label, output_size):
+def resize_image_and_label(image, label, output_size):
 
     '''
     output_size: [height, width]
@@ -218,12 +229,12 @@ def image_augmentaion(image, label, output_size, scale_factor = 1.5):
         image_augmented, label_augmented = random_crop(image = image_augmented, label = label_augmented, output_size = output_size)
     else:
         rescaled_size = [np.random.randint(target_height, int(scale_factor * target_height)), np.random.randint(target_width, int(scale_factor * target_width))]
-        image_augmented, label_augmented = resize_image(image = image_augmented, label = label_augmented, output_size = rescaled_size)
+        image_augmented, label_augmented = resize_image_and_label(image = image_augmented, label = label_augmented, output_size = rescaled_size)
         image_augmented, label_augmented = random_crop(image = image_augmented, label = label_augmented, output_size = output_size)
 
     # Flip image and label
     if np.random.random() > 0.5:
-        image_augmented, label_augmented = flip_image(image = image_augmented, label = label_augmented)
+        image_augmented, label_augmented = flip_image_and_label(image = image_augmented, label = label_augmented)
 
     return image_augmented, label_augmented
 
@@ -345,12 +356,13 @@ def validation_demo(images, labels, predictions, demo_dir):
         save_annotation(label = labels[i], filename = os.path.join(demo_dir, 'image_{}_label.png'.format(i)), add_colormap = True)
         save_annotation(label = predictions[i], filename = os.path.join(demo_dir, 'image_{}_prediction.png'.format(i)), add_colormap = True)
 
-
+'''
 def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):
-    '''
-    Pixel intersection-over-union averaged across number of classes.
-    Assuming valid labels are from 0 to num_classes - 1. 
-    '''
+
+    #Pixel intersection-over-union averaged across number of classes.
+    #Assuming valid labels are from 0 to num_classes - 1. 
+    #Only support list shaped labels and predictions.
+    
 
     assert labels.ndim == 3 and labels.shape == predictions.shape
 
@@ -367,6 +379,33 @@ def count_label_prediction_matches(labels, predictions, num_classes, ignore_labe
         num_pixel_correct_predictions[i] += np.sum(matched_pixels * class_mask)
 
     return num_pixel_labels, num_pixel_correct_predictions
+'''
+
+
+def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):
+    '''
+    Pixel intersection-over-union averaged across number of classes.
+    Assuming valid labels are from 0 to num_classes - 1. 
+    Support list shaped labels and predictions.
+    '''
+    num_pixel_labels = np.zeros(num_classes)
+    num_pixel_correct_predictions = np.zeros(num_classes)
+
+    for label, prediction in zip(labels, predictions):
+        not_ignore_mask = np.not_equal(label, ignore_label).astype(np.int)
+        matched_pixels = (label == prediction) * not_ignore_mask
+
+        for i in range(num_classes):
+            class_mask = (label == i)
+            num_pixel_labels[i] += np.sum(class_mask)
+            num_pixel_correct_predictions[i] += np.sum(matched_pixels * class_mask)
+
+    return num_pixel_labels, num_pixel_correct_predictions
+
+
+
+
+
 
 
 
@@ -386,10 +425,54 @@ def mean_intersection_over_union(num_pixel_labels, num_pixel_correct_predictions
         iou_sum += num_pixel_correct_predictions[i] / num_pixel_labels[i]
 
     assert num_existing_classes != 0
-    
+
     mean_iou = iou_sum / num_existing_classes
 
     return mean_iou
+
+
+def multiscale_single_test(image, input_scales, predictor):
+    '''
+    Predict image semantic segmentation labeling using multi-scale inputs.
+    Inputs:
+    images: numpy array, [height, width, channel], channel = 3.
+    input_scales: list of scale factors. e.g., [0.5, 1.0, 1.5].
+    predictor: prediction function which takes one scaled image as input and outputs its semantic segmentation labelings.
+    Returns:
+    Averaged predicted logits of multi-scale inputs
+    '''
+    image_height_raw = image.shape[0]
+    image_width_raw = image.shape[1]
+    multiscale_outputs = []
+    for input_scale in input_scales:
+        image_height_scaled = int(image_height_raw * input_scale)
+        image_width_scaled = int(image_width_raw * input_scale)
+        image_scaled = cv2.resize(image, (image_width_scaled, image_height_scaled), interpolation = cv2.INTER_LINEAR)
+        output = predictor(inputs = [image_scaled], target_height = image_height_raw, target_width = image_width_raw)[0]
+        multiscale_outputs.append(output)
+
+    output_mean = np.mean(multiscale_outputs, axis = 0)
+
+    return output_mean
+
+def multiscale_single_validate(image, label, input_scales, validator):
+
+    image_height_raw = image.shape[0]
+    image_width_raw = image.shape[1]
+    multiscale_outputs = []
+    multiscale_losses = []
+    for input_scale in input_scales:
+        image_height_scaled = int(image_height_raw * input_scale)
+        image_width_scaled = int(image_width_raw * input_scale)
+        image_scaled = cv2.resize(image, (image_width_scaled, image_height_scaled), interpolation = cv2.INTER_LINEAR)
+        output, loss = validator(inputs = [image_scaled], target_height = image_height_raw, target_width = image_width_raw, labels = [label])
+        multiscale_outputs.append(output[0])
+        multiscale_losses.append(loss)
+
+    output_mean = np.mean(multiscale_outputs, axis = 0)
+    loss_mean = np.mean(multiscale_losses)
+
+    return output_mean, loss_mean
 
 
 '''
@@ -405,6 +488,73 @@ def mean_intersection_over_union(labels, predictions, ignore_label):
 
     return num_matched_labels, num_valid_labels, mIOU
 '''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
+
+def learning_rate_policy(iteration, max_iteration, power = 0.9):
+
+    return (1 - iteration / max_iteration) ** power
+
+
+
+def multiscale_test(image, scales, predictor):
+
+
+
+
+
+
+
+
+
+def multiscale_test(image, scales, predictor, input_shape):
+    
+    #Predict image semantic segmentation labeling using multi-scale inputs.
+    #images: numpy array, [height, width, channel], channel = 3.
+    #scales: list of scale factors. e.g., [0.5, 1.0, 1.5].
+    #predictor: prediction function which takes one scaled image as input and outputs its semantic segmentation labelings.
+    #input_shape: the input shape of image to the predictor function.
+    
+
+    assert image.ndim == 3 and image.shape[2] == 3, 'Incorrect input image dimensions.'
+    assert len(scales) >= 1, 'At least one scale factor has to be provided for the image.'
+
+
+    images_scaled = 
+
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
