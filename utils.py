@@ -129,7 +129,7 @@ class Iterator(object):
         image_filename = self.image_filenames[self.current_index]
         label_filename = self.label_filenames[self.current_index]
         self.current_index += 1
-        if self.current_index > self.dataset_size:
+        if self.current_index >= self.dataset_size:
             self.current_index = 0
         image = read_image(image_filename = image_filename)
         label = read_label(label_filename = label_filename)
@@ -141,7 +141,7 @@ class Iterator(object):
         image_filenames_minibatch = self.image_filenames[self.current_index : self.current_index + self.minibatch_size]
         label_filenames_minibatch = self.label_filenames[self.current_index : self.current_index + self.minibatch_size]
         self.current_index += self.minibatch_size
-        if self.current_index > self.dataset_size:
+        if self.current_index >= self.dataset_size:
             self.current_index = 0
 
         # Multithread image processing
@@ -355,6 +355,15 @@ def validation_demo(images, labels, predictions, demo_dir):
         cv2.imwrite(os.path.join(demo_dir, 'image_{}.jpg'.format(i)), images[i])
         save_annotation(label = labels[i], filename = os.path.join(demo_dir, 'image_{}_label.png'.format(i)), add_colormap = True)
         save_annotation(label = predictions[i], filename = os.path.join(demo_dir, 'image_{}_prediction.png'.format(i)), add_colormap = True)
+
+def validation_single_demo(image, label, prediction, demo_dir, filename):
+
+    if not os.path.exists(demo_dir):
+        os.makedirs(demo_dir)
+
+    cv2.imwrite(os.path.join(demo_dir, 'image_{}.jpg'.format(filename)), image)
+    save_annotation(label = label, filename = os.path.join(demo_dir, 'image_{}_label.png'.format(filename)), add_colormap = True)
+    save_annotation(label = prediction, filename = os.path.join(demo_dir, 'image_{}_prediction.png'.format(filename)), add_colormap = True)
 
 '''
 def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):

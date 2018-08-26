@@ -23,7 +23,6 @@ class DeepLab(object):
         self.target_height = tf.placeholder(tf.int32, None, name = 'target_image_height')
         self.target_width = tf.placeholder(tf.int32, None, name = 'target_image_width')
 
-
         self.pre_trained_model = pre_trained_model
         self.batch_norm_decay = batch_norm_decay
 

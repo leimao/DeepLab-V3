@@ -1,7 +1,7 @@
 
 
 from utils import Dataset, Iterator, DataPrerocessor
-from utils import save_load_means, validation_demo, add_channel_means, count_label_prediction_matches, mean_intersection_over_union, multiscale_single_validate, multiscale_single_test
+from utils import save_load_means, validation_demo, add_channel_means, count_label_prediction_matches, mean_intersection_over_union, multiscale_single_validate, multiscale_single_test, validation_single_demo
 
 from model import DeepLab
 
@@ -25,7 +25,8 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
     model_filename = 'deeplab.ckpt'
     image_shape = [513, 513]
 
-    validation_scales = [0.5, 1, 1.5]
+    #validation_scales = [0.5, 1, 1.5]
+    validation_scales = [1]
 
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
@@ -73,6 +74,8 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
 
             num_pixel_labels_total += num_pixel_labels
             num_pixel_correct_predictions_total += num_pixel_correct_predictions
+
+            validation_single_demo(image = image, label = np.squeeze(label, axis = -1), prediction = prediction, demo_dir = os.path.join(results_dir, 'validation_demo'), filename = str(j))
 
         '''
         for j in tqdm(range(np.ceil(valid_iterator.dataset_size / minibatch_size).astype(int))):
