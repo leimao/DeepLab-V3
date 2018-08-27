@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 import os
 import numpy as np
+import tensorflow as tf
 
 
 
@@ -18,7 +19,7 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
     num_classes = 21
     ignore_label = 255
     num_epochs = 100
-    minibatch_size = 8 # Unable to do minibatch_size = 12 :(
+    minibatch_size = 10 # Unable to do minibatch_size = 12 :(
     random_seed = 0
     learning_rate = 0.00001
     batch_norm_decay = 0.9997
@@ -64,20 +65,25 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
         num_pixel_labels_total = np.zeros(num_classes)
         num_pixel_correct_predictions_total = np.zeros(num_classes)
 
+        # Multi-scale inputs prediction
+        
         for j in tqdm(range(valid_iterator.dataset_size)):
             image, label = valid_iterator.next_raw_data()
 
             output, valid_loss = multiscale_single_validate(image = image, label = label, input_scales = validation_scales, validator = model.validate)
             prediction = np.argmax(output, axis = -1)
             valid_loss_total += valid_loss
-            num_pixel_labels, num_pixel_correct_predictions = count_label_prediction_matches(labels = [label], predictions = [prediction], num_classes = num_classes, ignore_label = ignore_label)
+            num_pixel_labels, num_pixel_correct_predictions = count_label_prediction_matches(labels = [np.squeeze(label, axis = -1)], predictions = [prediction], num_classes = num_classes, ignore_label = ignore_label)
 
             num_pixel_labels_total += num_pixel_labels
             num_pixel_correct_predictions_total += num_pixel_correct_predictions
 
-            validation_single_demo(image = image, label = np.squeeze(label, axis = -1), prediction = prediction, demo_dir = os.path.join(results_dir, 'validation_demo'), filename = str(j))
+            #validation_single_demo(image = image, label = np.squeeze(label, axis = -1), prediction = prediction, demo_dir = os.path.join(results_dir, 'validation_demo'), filename = str(j))
 
-        '''
+
+
+
+        """
         for j in tqdm(range(np.ceil(valid_iterator.dataset_size / minibatch_size).astype(int))):
 
             images, labels = valid_iterator.next_minibatch()
@@ -90,11 +96,19 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
 
             num_pixel_labels_total += num_pixel_labels
             num_pixel_correct_predictions_total += num_pixel_correct_predictions
-        '''
+
+        validation_demo(images = images, labels = np.squeeze(labels, axis = -1), predictions = predictions, demo_dir = os.path.join(results_dir, 'validation_demo'))
+        """
+        
+
+        print(num_pixel_labels_total)
+        print(num_pixel_correct_predictions_total)
+        print(num_pixel_correct_predictions_total / num_pixel_labels_total)
+
 
         mean_IOU = mean_intersection_over_union(num_pixel_labels = num_pixel_labels_total, num_pixel_correct_predictions = num_pixel_correct_predictions_total)
 
-        #validation_demo(images = images, labels = np.squeeze(labels, axis = -1), predictions = predictions, demo_dir = os.path.join(results_dir, 'validation_demo'))
+
 
         valid_loss_ave = valid_loss_total / valid_iterator.dataset_size
 
@@ -111,6 +125,8 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
             predictions = np.argmax(outputs, axis = -1)
             train_loss_total += train_loss * num_samples
 
+        train_iterator.shuffle_dataset()
+
         validation_demo(images = images, labels = np.squeeze(labels, axis = -1), predictions = predictions, demo_dir = os.path.join(results_dir, 'training_demo'))
 
         train_loss_ave = train_loss_total / train_iterator.dataset_size
@@ -118,6 +134,9 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
         print('Training loss: {:.4f}'.format(train_loss_ave))
 
 if __name__ == '__main__':
+
+    tf.set_random_seed(0)
+    np.random.seed(0)
     
     train()
 

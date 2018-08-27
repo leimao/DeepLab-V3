@@ -79,7 +79,9 @@ class DeepLab(object):
         with tf.variable_scope('encoder', reuse = None):
             pools = atrous_spatial_pyramid_pooling(inputs = self.feature_map, filters = 256)
             logits = tf.layers.conv2d(inputs = pools, filters = self.num_classes, kernel_size = (1, 1), activation = None, name = 'logits')
-            outputs = tf.image.resize_bilinear(images = logits, size = (self.target_height, self.target_width), name = 'resized_outputs')
+            #outputs = tf.image.resize_bilinear(images = logits, size = (self.target_height, self.target_width), name = 'resized_outputs')
+
+            outputs = tf.image.resize_nearest_neighbor(images = logits, size = (self.target_height, self.target_width), name = 'resized_outputs')
 
         return outputs
 

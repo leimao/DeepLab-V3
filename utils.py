@@ -118,10 +118,11 @@ class Iterator(object):
 
     def shuffle_dataset(self, random_seed = None):
 
+        if random_seed is not None:
+            np.random.seed(random_seed)
         self.current_index = 0
         idx = np.arange(self.dataset_size)
-        if scramble == True:
-            np.random.shuffle(idx)
+        np.random.shuffle(idx)
         self.image_filenames = self.image_filenames[idx]
         self.label_filenames = self.label_filenames[idx]
 
@@ -365,12 +366,12 @@ def validation_single_demo(image, label, prediction, demo_dir, filename):
     save_annotation(label = label, filename = os.path.join(demo_dir, 'image_{}_label.png'.format(filename)), add_colormap = True)
     save_annotation(label = prediction, filename = os.path.join(demo_dir, 'image_{}_prediction.png'.format(filename)), add_colormap = True)
 
-'''
+
+"""
 def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):
 
     #Pixel intersection-over-union averaged across number of classes.
     #Assuming valid labels are from 0 to num_classes - 1. 
-    #Only support list shaped labels and predictions.
     
 
     assert labels.ndim == 3 and labels.shape == predictions.shape
@@ -388,7 +389,7 @@ def count_label_prediction_matches(labels, predictions, num_classes, ignore_labe
         num_pixel_correct_predictions[i] += np.sum(matched_pixels * class_mask)
 
     return num_pixel_labels, num_pixel_correct_predictions
-'''
+"""
 
 
 def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):
@@ -401,6 +402,8 @@ def count_label_prediction_matches(labels, predictions, num_classes, ignore_labe
     num_pixel_correct_predictions = np.zeros(num_classes)
 
     for label, prediction in zip(labels, predictions):
+        #print(label.shape, prediction.shape)
+        assert label.shape == prediction.shape
         not_ignore_mask = np.not_equal(label, ignore_label).astype(np.int)
         matched_pixels = (label == prediction) * not_ignore_mask
 
@@ -410,7 +413,6 @@ def count_label_prediction_matches(labels, predictions, num_classes, ignore_labe
             num_pixel_correct_predictions[i] += np.sum(matched_pixels * class_mask)
 
     return num_pixel_labels, num_pixel_correct_predictions
-
 
 
 
