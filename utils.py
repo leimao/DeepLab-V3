@@ -200,6 +200,21 @@ def resize_image_and_label(image, label, output_size):
 
     return image_resized, label_resized
 
+def pad_image_and_label(image, label, top, bottom, left, right, pixel_value = 0, label_value = 0):
+
+    '''
+    https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_core/py_basic_ops/py_basic_ops.html#making-borders-for-images-padding
+    '''
+
+    image_padded = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value = pixel_value)
+    label_padded = cv2.copyMakeBorder(label, top, bottom, left, right, cv2.BORDER_CONSTANT, value = label_value)
+    label_padded = np.expand_dims(label_padded, axis = 2)
+
+    return image_padded, label_padded
+
+
+
+
 
 def random_crop(image, label, output_size):
 
@@ -215,7 +230,7 @@ def random_crop(image, label, output_size):
 
     return image_cropped, label_cropped
 
-
+'''
 def image_augmentaion(image, label, output_size, scale_factor = 1.5):
 
     original_height = image.shape[0]
@@ -238,21 +253,70 @@ def image_augmentaion(image, label, output_size, scale_factor = 1.5):
         image_augmented, label_augmented = flip_image_and_label(image = image_augmented, label = label_augmented)
 
     return image_augmented, label_augmented
+'''
+
+
+
+def image_augmentaion(image, label, output_size, min_scale_factor = 0.5, max_scale_factor = 2.0):
+
+    original_height = image.shape[0]
+    original_width = image.shape[1]
+    target_height = output_size[0]
+    target_width = output_size[1]
+
+    scale_factor = np.random.uniform(low = min_scale_factor, high = max_scale_factor)
+
+    rescaled_size = [int(original_height * scale_factor), int(original_width * scale_factor)]
+
+    image_augmented = image.copy()
+    label_augmented = label.copy()
+
+    image_augmented, label_augmented = resize_image_and_label(image = image_augmented, label = label_augmented, output_size = rescaled_size)
+
+    if rescaled_size[0] < target_height:
+        vertical_pad = int(target_height * 1.5) - rescaled_size[0]
+    else:
+        vertical_pad = int(rescaled_size[0] * 0.5)
+
+    vertical_pad_up = vertical_pad // 2
+    vertical_pad_down = vertical_pad - vertical_pad_up
+
+
+    if rescaled_size[1] < target_width:
+        horizonal_pad = int(target_width * 1.5) - rescaled_size[1]
+    else:
+        horizonal_pad = int(rescaled_size[1] * 0.5)
+
+    horizonal_pad_left = horizonal_pad // 2
+    horizonal_pad_right = horizonal_pad - horizonal_pad_left
+
+
+    image_augmented, label_augmented = pad_image_and_label(image = image_augmented, label = label_augmented, top = vertical_pad_up, bottom = vertical_pad_down, left = horizonal_pad_left, right = horizonal_pad_right, pixel_value = 0, label_value = 0)
+
+    image_augmented, label_augmented = random_crop(image = image_augmented, label = label_augmented, output_size = output_size)
+
+    # Flip image and label
+    if np.random.random() > 0.5:
+        image_augmented, label_augmented = flip_image_and_label(image = image_augmented, label = label_augmented)
+
+    return image_augmented, label_augmented
+
 
 
 class DataPrerocessor(object):
 
-    def __init__(self, channel_means, output_size = [513, 513], scale_factor = 1.5):
+    def __init__(self, channel_means, output_size = [513, 513], min_scale_factor = 0.5, max_scale_factor = 2.0):
 
         self.channel_means = channel_means
         self.output_size = output_size
-        self.scale_factor = scale_factor
+        self.min_scale_factor = min_scale_factor
+        self.max_scale_factor = max_scale_factor
 
     def preprocess(self, image_filename, label_filename):
         # Read data from file
         image = read_image(image_filename = image_filename)
         label = read_label(label_filename = label_filename)
-        image, label = image_augmentaion(image = image, label = label, output_size = self.output_size, scale_factor = self.scale_factor)
+        image, label = image_augmentaion(image = image, label = label, output_size = self.output_size, min_scale_factor = self.min_scale_factor, max_scale_factor = self.max_scale_factor)
 
         # Image normalization
         image = subtract_channel_means(image = image, channel_means = self.channel_means)

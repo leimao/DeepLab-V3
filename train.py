@@ -18,10 +18,11 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
 
     num_classes = 21
     ignore_label = 255
-    num_epochs = 100
-    minibatch_size = 10 # Unable to do minibatch_size = 12 :(
+    num_epochs = 1000
+    minibatch_size = 8 # Unable to do minibatch_size = 12 :(
     random_seed = 0
-    learning_rate = 0.00001
+    #learning_rate = 0.00001
+    learning_rate = 0.0001
     batch_norm_decay = 0.9997
     model_filename = 'deeplab.ckpt'
     image_shape = [513, 513]
@@ -44,7 +45,7 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
     # Calculate image channel means
     channel_means = save_load_means(means_filename = './models/channel_means.npz', image_filenames = train_dataset.image_filenames, recalculate = False)
 
-    voc2012_preprocessor = DataPrerocessor(channel_means = channel_means, output_size = image_shape, scale_factor = 1.5)
+    voc2012_preprocessor = DataPrerocessor(channel_means = channel_means, output_size = image_shape, min_scale_factor = 0.5, max_scale_factor = 2.0)
 
     # Prepare dataset iterators
     train_iterator = Iterator(dataset = train_dataset, minibatch_size = minibatch_size, process_func = voc2012_preprocessor.preprocess, random_seed = random_seed, scramble = True, num_jobs = 1)
@@ -100,7 +101,6 @@ def train(train_dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt',
         validation_demo(images = images, labels = np.squeeze(labels, axis = -1), predictions = predictions, demo_dir = os.path.join(results_dir, 'validation_demo'))
         """
         
-
         print(num_pixel_labels_total)
         print(num_pixel_correct_predictions_total)
         print(num_pixel_correct_predictions_total / num_pixel_labels_total)
