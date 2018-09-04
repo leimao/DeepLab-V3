@@ -9,17 +9,20 @@ from tensorflow.contrib.slim.nets import resnet_v2
 
 class DeepLab(object):
 
-    def __init__(self, is_training, num_classes, ignore_label=255, image_shape=[513, 513, 3], base_architecture='resnet_v2_101', batch_norm_decay=0.9997, pre_trained_model='./models/resnet_101/resnet_v2_101.ckpt', log_dir='./log'):
+    def __init__(self, is_training, num_classes, ignore_label=255, base_architecture='resnet_v2_101', batch_norm_decay=0.9997, pre_trained_model='./models/resnet_101/resnet_v2_101.ckpt', log_dir='./log'):
 
         self.is_training = is_training
         self.num_classes = num_classes
         self.ignore_label = ignore_label
         self.base_architecture = base_architecture
-        self.image_shape = image_shape
-        self.inputs_shape = [None] + self.image_shape
-        self.labels_shape = [None, self.image_shape[0], self.image_shape[1], 1]
+        self.inputs_shape = [None, None, None, 3]
+        self.labels_shape = [None, None, None, 1]
         self.inputs = tf.placeholder(tf.float32, shape=self.inputs_shape, name='inputs')
         self.labels = tf.placeholder(tf.uint8, shape=self.labels_shape, name='labels')
+
+        self.target_height = tf.placeholder(tf.int32, None, name='target_image_height')
+        self.target_width = tf.placeholder(tf.int32, None, name='target_image_width')
+
         self.pre_trained_model = pre_trained_model
         self.batch_norm_decay = batch_norm_decay
 
@@ -46,12 +49,10 @@ class DeepLab(object):
 
         if self.base_architecture == 'resnet_v2_101':
             self.base_model = resnet_v2.resnet_v2_101
-            assert self.image_shape == [513, 513, 3], 'image shape does not match to ResNet-101 inputs shape'
             feature_map = self.resnet_initializer()
 
         elif self.base_architecture == 'resnet_v2_50':
             self.base_model = resnet_v2.resnet_v2_50
-            assert self.image_shape == [224, 224, 3], 'image shape does not match to ResNet-50 inputs shape'
             feature_map = self.resnet_initializer()
         else:
             raise Exception('Unknown backbone architecture')
@@ -77,8 +78,10 @@ class DeepLab(object):
 
         with tf.name_scope('encoder'):
             pools = atrous_spatial_pyramid_pooling(inputs=self.feature_map, filters=256)
-            logits = tf.layers.conv2d(inputs=pools, filters=self.num_classes, kernel_size=(3, 3), activation=None, name='logits')
-            outputs = tf.image.resize_bilinear(images=logits, size=(self.image_shape[0], self.image_shape[1]), name='upsampled')
+            logits = tf.layers.conv2d(inputs=pools, filters=self.num_classes, kernel_size=(1, 1), activation=None, name='logits')
+            outputs = tf.image.resize_bilinear(images=logits, size=(self.target_height, self.target_width), name='resized_outputs')
+
+            # outputs = tf.image.resize_nearest_neighbor(images = logits, size = (self.target_height, self.target_width), name = 'resized_outputs')
 
         return outputs
 
@@ -108,26 +111,26 @@ class DeepLab(object):
 
         return train_loss_summary, valid_loss_summary
 
-    def train(self, inputs, labels, learning_rate):
+    def train(self, inputs, labels, target_height, target_width, learning_rate):
 
-        _, outputs, train_loss, summaries = self.sess.run([self.optimizer, self.outputs, self.loss, self.train_summaries], feed_dict={self.inputs: inputs, self.labels: labels, self.learning_rate: learning_rate})
+        _, outputs, train_loss, summaries = self.sess.run([self.optimizer, self.outputs, self.loss, self.train_summaries], feed_dict={self.inputs: inputs, self.labels: labels, self.learning_rate: learning_rate, self.target_height: target_height, self.target_width: target_width})
 
         self.writer.add_summary(summaries, self.train_step)
         self.train_step += 1
 
         return outputs, train_loss
 
-    def validate(self, inputs, labels):
+    def validate(self, inputs, labels, target_height, target_width):
 
-        outputs, valid_loss, summaries = self.sess.run([self.outputs, self.loss, self.valid_summaries], feed_dict={self.inputs: inputs, self.labels: labels})
+        outputs, valid_loss, summaries = self.sess.run([self.outputs, self.loss, self.valid_summaries], feed_dict={self.inputs: inputs, self.labels: labels, self.target_height: target_height, self.target_width: target_width})
 
         self.writer.add_summary(summaries, self.train_step)
 
         return outputs, valid_loss
 
-    def test(self, inputs):
+    def test(self, inputs, target_height, target_width):
 
-        outputs = self.sess.run(self.outputs, feed_dict={self.inputs: inputs})
+        outputs = self.sess.run(self.outputs, feed_dict={self.inputs: inputs, self.target_height: target_height, self.target_width: target_width})
 
         return outputs
 
@@ -147,8 +150,9 @@ class DeepLab(object):
         self.writer.close()
         self.sess.close()
 
+
 if __name__ == '__main__':
 
-    deeplab = DeepLab(is_training=True, num_classes=10, image_shape=[513, 513, 3], base_architecture='resnet_v2_101', batch_norm_decay=0.9997, pre_trained_model='./models/resnet_101/resnet_v2_101.ckpt')
+    deeplab = DeepLab(is_training=True, num_classes=10, base_architecture='resnet_v2_101', batch_norm_decay=0.9997, pre_trained_model='./models/resnet_101/resnet_v2_101.ckpt')
     print('Graph compile successful.')
     deeplab.close()
