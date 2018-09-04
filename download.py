@@ -11,8 +11,11 @@ dukeleimao@gmail.com
 
 import os
 import tarfile
+import zipfile
 from urllib.request import urlretrieve
+
 from tqdm import tqdm
+
 
 class TqdmUpTo(tqdm):
     '''
@@ -20,14 +23,14 @@ class TqdmUpTo(tqdm):
     https://gist.github.com/leimao/37ff6e990b3226c2c9670a2cd1e4a6f5
     '''
 
-    def update_to(self, b = 1, bsize = 1, tsize = None):
+    def update_to(self, b=1, bsize=1, tsize=None):
 
         if tsize is not None:
             self.total = tsize
         self.update(b * bsize - self.n)  # will also set self.n = b * bsize
 
 
-def maybe_download(filename, url, destination_dir, expected_bytes = None, force = False):
+def maybe_download(filename, url, destination_dir, expected_bytes=None, force=False):
 
     filepath = os.path.join(destination_dir, filename)
 
@@ -37,14 +40,14 @@ def maybe_download(filename, url, destination_dir, expected_bytes = None, force 
 
         print('Attempting to download: ' + filename)
 
-        with TqdmUpTo(unit = 'B', unit_scale = True, unit_divisor = 1024, miniters = 1, desc = filename) as t:
-            urlretrieve(url, filename = filepath, reporthook = t.update_to)
+        with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc=filename) as t:
+            urlretrieve(url, filename=filepath, reporthook=t.update_to)
 
         print('Download complete!')
 
     statinfo = os.stat(filepath)
 
-    if expected_bytes != None:
+    if expected_bytes:
         if statinfo.st_size == expected_bytes:
             print('Found and verified: ' + filename)
         else:
@@ -56,24 +59,23 @@ def maybe_download(filename, url, destination_dir, expected_bytes = None, force 
     return filepath
 
 
-def download_voc2012(downloads_dir = './downloads', data_dir = './data'):
+def download_voc2012(downloads_dir='./downloads', data_dir='./data'):
 
     url = 'http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar'
 
     if not os.path.exists(downloads_dir):
         os.makedirs(downloads_dir)
 
-    filepath = maybe_download(filename = url.split('/')[-1], url = url, destination_dir = downloads_dir, expected_bytes = None, force = False)
+    filepath = maybe_download(filename=url.split('/')[-1], url=url, destination_dir=downloads_dir, expected_bytes=None, force=False)
 
-    may_untar(tar_filepath = filepath, destination_dir = data_dir)
+    may_untar(tar_filepath=filepath, destination_dir=data_dir)
 
 
 def may_untar(tar_filepath, destination_dir):
 
     print('Extracting tar file {} ...'.format(os.path.split(tar_filepath)[-1]))
-    tar = tarfile.open(name = tar_filepath, mode = 'r')
-    tar.extractall(path = destination_dir)
-    tar.close()
+    with tarfile.open(name=tar_filepath, mode='r') as tar:
+        tar.extractall(path=destination_dir)
     print('Extraction complete!')
 
 
@@ -85,7 +87,7 @@ def maybe_unzip(zip_filepath, destination_dir):
     print('Extraction complete!')
 
 
-def download_pre_trained_resnet(resnet = 'resnet_101', downloads_dir = './downloads', model_dir = './models'):
+def download_pre_trained_resnet(resnet='resnet_101', downloads_dir='./downloads', model_dir='./models'):
     '''
     Download ImageNet pre-trained ResNet
     https://github.com/tensorflow/models/tree/master/research/slim
@@ -105,11 +107,9 @@ def download_pre_trained_resnet(resnet = 'resnet_101', downloads_dir = './downlo
     if not os.path.exists(downloads_dir):
         os.makedirs(downloads_dir)
 
-    filepath = maybe_download(filename = url.split('/')[-1], url = url, destination_dir = downloads_dir, expected_bytes = None, force = False)
+    filepath = maybe_download(filename=url.split('/')[-1], url=url, destination_dir=downloads_dir, expected_bytes=None, force=False)
 
-    may_untar(tar_filepath = filepath, destination_dir = os.path.join(model_dir, resnet))
-
-
+    may_untar(tar_filepath=filepath, destination_dir=os.path.join(model_dir, resnet))
 
 
 if __name__ == '__main__':
@@ -117,5 +117,5 @@ if __name__ == '__main__':
     print('Downloading datasets ...')
     download_voc2012()
     print('Downloading pre-trained models ...')
-    download_pre_trained_resnet(resnet = 'resnet_101')
-    download_pre_trained_resnet(resnet = 'resnet_50')
+    download_pre_trained_resnet(resnet='resnet_101')
+    download_pre_trained_resnet(resnet='resnet_50')

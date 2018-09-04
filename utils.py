@@ -1,61 +1,68 @@
 
-import numpy as np
-import cv2
 import os
-from tqdm import tqdm
-from PIL import Image
-from joblib import Parallel, delayed
 import time
+
+import numpy as np
+from tqdm import tqdm
+
+import cv2
+from joblib import Parallel, delayed
+from PIL import Image
+
 
 def image_channel_means(image_filenames):
     '''
     Calculate the means of RGB channels in image dataset.
-    Support extremely large images of different sizes and arbitrary large number of images.
+    Support extremely large images of different sizes and arbitrarily large number of images.
     image_filenames: list of image filenames
     '''
 
     num_pixels = 0
-    channel_sums = [0, 0, 0]
+    channel_sums = np.zeros(3, dtype=object)
 
-    num_images = len(image_filenames)
+    for image_filename in tqdm(image_filenames):
+        image = cv2.imread(image_filename)
+        channel_sums += np.sum(image, axis=(0, 1))
+        num_pixels += np.prod(image.shape[:2])
 
-    for i in tqdm(range(num_images)):
-
-        image = cv2.imread(image_filenames[i])
-        channel_sum = np.sum(image, axis = (0, 1))
-        channel_sums[0] += channel_sum[0]
-        channel_sums[1] += channel_sum[1]
-        channel_sums[2] += channel_sum[2]
-        num_pixels += image.shape[0] * image.shape[1]
-
-    channel_means = [channel_sums[0] // num_pixels, channel_sums[1] // num_pixels, channel_sums[2] // num_pixels]
-    channel_means = np.asarray(channel_means)
+    channel_means = (channel_sums / num_pixels).astype(float)
 
     return channel_means
 
 
-def save_load_means(means_filename, image_filenames, recalculate = False):
+def save_load_means(means_filename, image_filenames, recalculate=False):
     '''
-    Calculate and save the means of RGB channels in image dataset if the mean file does not exist. 
+    Calculate and save the means of RGB channels in image dataset if the mean file does not exist.
     Otherwise read the means directly from the mean file.
     means_filename: npz filename for image channel means
     image_filenames: list of image filenames
     recalculate: recalculate image channel means regardless the existence of mean file
     '''
 
-    if (not os.path.isfile(means_filename)) or recalculate == True:
+    if (not os.path.isfile(means_filename)) or recalculate:
         print('Calculating pixel means for each channel of images ...')
-        channel_means = image_channel_means(image_filenames = image_filenames)
-        np.savez(means_filename, channel_means = channel_means)
+        channel_means = image_channel_means(image_filenames=image_filenames)
+        np.savez(means_filename, channel_means=channel_means)
     else:
         channel_means = np.load(means_filename)['channel_means']
 
     return channel_means
 
 
+class RandomStateStack:
+    def __init__(self):
+        self.random_state = np.random.get_state()
+
+    def __enter__(self):
+        return None
+
+    def __exit__(self, type, value, traceback):
+        np.random.set_state(self.random_state)
+
+
 class Dataset(object):
 
-    def __init__(self, dataset_filename, images_dir, labels_dir, image_extension = '.jpg', label_extension = '.png'):
+    def __init__(self, dataset_filename, images_dir, labels_dir, image_extension='.jpg', label_extension='.png'):
 
         self.dataset_filename = dataset_filename
         self.images_dir = images_dir
@@ -84,29 +91,29 @@ class Dataset(object):
         return image_filenames, label_filenames
 
 
-
 class Iterator(object):
 
-    def __init__(self, dataset, minibatch_size, process_func, random_seed = None, scramble = True, num_jobs = 2):
+    def __init__(self, dataset, minibatch_size, process_func, random_seed=None, scramble=True, num_jobs=2):
 
         self.dataset_size = dataset.size
         self.minibatch_size = minibatch_size
         if self.minibatch_size > self.dataset_size:
-            print('Warning: dataset size should be greater or equal to minibatch size.')
+            print('Warning: dataset size should be no less than minibatch size.')
             print('Set minibatch size equal to dataset size.')
             self.minibatch_size = self.dataset_size
-        self.image_filenames, self.label_filenames = self.read_dataset(dataset = dataset, scramble = scramble, random_seed = random_seed)
+        self.image_filenames, self.label_filenames = self.read_dataset(dataset=dataset, scramble=scramble, random_seed=random_seed)
         self.current_index = 0
         self.process_func = process_func
         self.num_jobs = num_jobs
 
     def read_dataset(self, dataset, scramble, random_seed):
 
-        if random_seed is not None:
-            np.random.seed(random_seed)
         idx = np.arange(self.dataset_size)
-        if scramble == True:
-            np.random.shuffle(idx)
+        if scramble:
+            with RandomStateStack():
+                if random_seed is not None:
+                    np.random.seed(random_seed)
+                np.random.shuffle(idx)
         image_filenames = dataset.image_filenames[idx]
         label_filenames = dataset.label_filenames[idx]
 
@@ -116,19 +123,21 @@ class Iterator(object):
 
         self.current_index = 0
 
-    def shuffle_dataset(self, random_seed = None):
+    def shuffle_dataset(self, random_seed=None):
 
         self.current_index = 0
         idx = np.arange(self.dataset_size)
-        if scramble == True:
+        with RandomStateStack():
+            if random_seed is not None:
+                np.random.seed(random_seed)
             np.random.shuffle(idx)
         self.image_filenames = self.image_filenames[idx]
         self.label_filenames = self.label_filenames[idx]
 
     def next_minibatch(self):
 
-        image_filenames_minibatch = self.image_filenames[self.current_index : self.current_index + self.minibatch_size]
-        label_filenames_minibatch = self.label_filenames[self.current_index : self.current_index + self.minibatch_size]
+        image_filenames_minibatch = self.image_filenames[self.current_index: self.current_index + self.minibatch_size]
+        label_filenames_minibatch = self.label_filenames[self.current_index: self.current_index + self.minibatch_size]
         self.current_index += self.minibatch_size
         if self.current_index > self.dataset_size:
             self.current_index = 0
@@ -136,12 +145,13 @@ class Iterator(object):
         # Multithread image processing
         # Reference: https://www.kaggle.com/inoryy/fast-image-pre-process-in-parallel
 
-        results = Parallel(n_jobs = self.num_jobs)(delayed(self.process_func)(image_filename, label_filename) for image_filename, label_filename in zip(image_filenames_minibatch, label_filenames_minibatch))
+        results = Parallel(n_jobs=self.num_jobs)(delayed(self.process_func)(image_filename, label_filename)
+                                                 for image_filename, label_filename in zip(image_filenames_minibatch, label_filenames_minibatch))
         images, labels = zip(*results)
 
         images = np.asarray(images)
         labels = np.asarray(labels)
-        
+
         return images, labels
 
 
@@ -151,22 +161,25 @@ def read_image(image_filename):
 
     return image
 
+
 def read_label(label_filename):
 
     # Magic function to read VOC2012 semantic labels
     # https://github.com/tensorflow/models/blob/master/research/deeplab/datasets/remove_gt_colormap.py#L42
     label = np.asarray(Image.open(label_filename))
-    label = np.expand_dims(label, axis = 2)
+    label = np.expand_dims(label, axis=2)
 
     return label
 
+
 def subtract_channel_means(image, channel_means):
 
-    return image - np.reshape(channel_means, (1,1,3))
+    return image - np.reshape(channel_means, (1, 1, 3))
+
 
 def add_channel_means(image, channel_means):
 
-    return image + np.reshape(channel_means, (1,1,3))
+    return image + np.reshape(channel_means, (1, 1, 3))
 
 
 def flip_image(image, label):
@@ -176,15 +189,15 @@ def flip_image(image, label):
 
     return image_flipped, label_flipped
 
-def resize_image(image, label, output_size):
 
+def resize_image(image, label, output_size):
     '''
     output_size: [height, width]
     '''
 
-    image_resized = cv2.resize(image, (output_size[1], output_size[0]), interpolation = cv2.INTER_LINEAR)
-    label_resized = cv2.resize(label, (output_size[1], output_size[0]), interpolation = cv2.INTER_NEAREST)
-    label_resized = np.expand_dims(label_resized, axis = 2)
+    image_resized = cv2.resize(image, (output_size[1], output_size[0]), interpolation=cv2.INTER_LINEAR)
+    label_resized = cv2.resize(label, (output_size[1], output_size[0]), interpolation=cv2.INTER_NEAREST)
+    label_resized = np.expand_dims(label_resized, axis=2)
 
     return image_resized, label_resized
 
@@ -204,7 +217,7 @@ def random_crop(image, label, output_size):
     return image_cropped, label_cropped
 
 
-def image_augmentaion(image, label, output_size, scale_factor = 1.5):
+def image_augmentaion(image, label, output_size, scale_factor=1.5):
 
     original_height = image.shape[0]
     original_width = image.shape[1]
@@ -215,22 +228,22 @@ def image_augmentaion(image, label, output_size, scale_factor = 1.5):
     label_augmented = label.copy()
 
     if original_height >= int(scale_factor * target_height) and original_width >= int(scale_factor * target_width):
-        image_augmented, label_augmented = random_crop(image = image_augmented, label = label_augmented, output_size = output_size)
+        image_augmented, label_augmented = random_crop(image=image_augmented, label=label_augmented, output_size=output_size)
     else:
         rescaled_size = [np.random.randint(target_height, int(scale_factor * target_height)), np.random.randint(target_width, int(scale_factor * target_width))]
-        image_augmented, label_augmented = resize_image(image = image_augmented, label = label_augmented, output_size = rescaled_size)
-        image_augmented, label_augmented = random_crop(image = image_augmented, label = label_augmented, output_size = output_size)
+        image_augmented, label_augmented = resize_image(image=image_augmented, label=label_augmented, output_size=rescaled_size)
+        image_augmented, label_augmented = random_crop(image=image_augmented, label=label_augmented, output_size=output_size)
 
     # Flip image and label
     if np.random.random() > 0.5:
-        image_augmented, label_augmented = flip_image(image = image_augmented, label = label_augmented)
+        image_augmented, label_augmented = flip_image(image=image_augmented, label=label_augmented)
 
     return image_augmented, label_augmented
 
 
-class DataPrerocessor(object):
+class DataPreprocessor(object):
 
-    def __init__(self, channel_means, output_size = [513, 513], scale_factor = 1.5):
+    def __init__(self, channel_means, output_size=[513, 513], scale_factor=1.5):
 
         self.channel_means = channel_means
         self.output_size = output_size
@@ -238,15 +251,14 @@ class DataPrerocessor(object):
 
     def preprocess(self, image_filename, label_filename):
         # Read data from file
-        image = read_image(image_filename = image_filename)
-        label = read_label(label_filename = label_filename)
-        image, label = image_augmentaion(image = image, label = label, output_size = self.output_size, scale_factor = self.scale_factor)
+        image = read_image(image_filename=image_filename)
+        label = read_label(label_filename=label_filename)
+        image, label = image_augmentaion(image=image, label=label, output_size=self.output_size, scale_factor=self.scale_factor)
 
         # Image normalization
-        image = subtract_channel_means(image = image, channel_means = self.channel_means)
+        image = subtract_channel_means(image=image, channel_means=self.channel_means)
 
         return image, label
-
 
 
 
@@ -255,6 +267,7 @@ class DataPrerocessor(object):
 The following image annotition saving codes in the block are slightly modified from Google's official DeepLab repository.
 https://github.com/tensorflow/models/blob/master/research/deeplab/utils/get_dataset_colormap.py
 '''
+
 
 def bit_get(val, idx):
     '''
@@ -268,7 +281,6 @@ def bit_get(val, idx):
     return (val >> idx) & 1
 
 
-
 def create_pascal_label_colormap():
     '''
     Creates a label colormap used in PASCAL VOC segmentation benchmark.
@@ -276,8 +288,8 @@ def create_pascal_label_colormap():
     A colormap for visualizing segmentation results.
     Reference:
     '''
-    colormap = np.zeros((256, 3), dtype = int)
-    ind = np.arange(256, dtype = int)
+    colormap = np.zeros((256, 3), dtype=int)
+    ind = np.arange(256, dtype=int)
 
     for shift in reversed(range(8)):
         for channel in range(3):
@@ -285,6 +297,7 @@ def create_pascal_label_colormap():
         ind >>= 3
 
     return colormap
+
 
 def label_to_color_image(label):
     '''
@@ -307,7 +320,8 @@ def label_to_color_image(label):
 
     return colormap[label]
 
-def save_annotation(label, filename, add_colormap = True):
+
+def save_annotation(label, filename, add_colormap=True):
     '''
     Saves the given label to image on disk.
     Args:
@@ -323,7 +337,7 @@ def save_annotation(label, filename, add_colormap = True):
     else:
         colored_label = label
 
-    image = Image.fromarray(colored_label.astype(dtype = np.uint8))
+    image = Image.fromarray(colored_label.astype(dtype=np.uint8))
     image.save(filename)
 
 
@@ -331,6 +345,7 @@ def save_annotation(label, filename, add_colormap = True):
 '''
 Evaluation
 '''
+
 
 def validation_demo(images, labels, predictions, demo_dir):
 
@@ -342,14 +357,14 @@ def validation_demo(images, labels, predictions, demo_dir):
     for i in range(len(images)):
 
         cv2.imwrite(os.path.join(demo_dir, 'image_{}.jpg'.format(i)), images[i])
-        save_annotation(label = labels[i], filename = os.path.join(demo_dir, 'image_{}_label.png'.format(i)), add_colormap = True)
-        save_annotation(label = predictions[i], filename = os.path.join(demo_dir, 'image_{}_prediction.png'.format(i)), add_colormap = True)
+        save_annotation(label=labels[i], filename=os.path.join(demo_dir, 'image_{}_label.png'.format(i)), add_colormap=True)
+        save_annotation(label=predictions[i], filename=os.path.join(demo_dir, 'image_{}_prediction.png'.format(i)), add_colormap=True)
 
 
 def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):
     '''
     Pixel intersection-over-union averaged across number of classes.
-    Assuming valid labels are from 0 to num_classes - 1. 
+    Assuming valid labels are from 0 to num_classes - 1.
     '''
 
     assert labels.ndim == 3 and labels.shape == predictions.shape
@@ -369,7 +384,6 @@ def count_label_prediction_matches(labels, predictions, num_classes, ignore_labe
     return num_pixel_labels, num_pixel_correct_predictions
 
 
-
 def mean_intersection_over_union(num_pixel_labels, num_pixel_correct_predictions):
 
     num_classes = len(num_pixel_labels)
@@ -386,7 +400,7 @@ def mean_intersection_over_union(num_pixel_labels, num_pixel_correct_predictions
         iou_sum += num_pixel_correct_predictions[i] / num_pixel_labels[i]
 
     assert num_existing_classes != 0
-    
+
     mean_iou = iou_sum / num_existing_classes
 
     return mean_iou
@@ -395,7 +409,7 @@ def mean_intersection_over_union(num_pixel_labels, num_pixel_correct_predictions
 '''
 def mean_intersection_over_union(labels, predictions, ignore_label):
     # Wrong implementation
-    
+
 
     not_ignore_mask = np.not_equal(labels, ignore_label).astype(np.int)
     num_valid_labels = np.sum(not_ignore_mask)
@@ -407,29 +421,22 @@ def mean_intersection_over_union(labels, predictions, ignore_label):
 '''
 
 
-
-
-
-
-
-
-
-
 if __name__ == '__main__':
 
     np.random.seed(0)
-    
-    train_dataset = Dataset(dataset_filename = './data/VOCdevkit/VOC2012/train_dataset.txt', images_dir = './data/VOCdevkit/VOC2012/JPEGImages', labels_dir = './data/VOCdevkit/VOC2012/SegmentationClass', image_extension = '.jpg', label_extension = '.png')
+
+    train_dataset = Dataset(dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', images_dir='./data/VOCdevkit/VOC2012/JPEGImages',
+                            labels_dir='./data/VOCdevkit/VOC2012/SegmentationClass', image_extension='.jpg', label_extension='.png')
     print(train_dataset.image_filenames)
     print(train_dataset.size)
 
-    channel_means = save_load_means(means_filename = './models/channel_means.npz', image_filenames = train_dataset.image_filenames, recalculate = False)
+    channel_means = save_load_means(means_filename='./models/channel_means.npz', image_filenames=train_dataset.image_filenames, recalculate=False)
     print(channel_means)
 
-    voc2012_preprocessor = DataPrerocessor(channel_means = channel_means, output_size = [513, 513], scale_factor = 1.5)
+    voc2012_preprocessor = DataPreprocessor(channel_means=channel_means, output_size=[513, 513], scale_factor=1.5)
 
     # Single thread is faster :(
-    train_iterator = Iterator(dataset = train_dataset, minibatch_size = 16, process_func = voc2012_preprocessor.preprocess, random_seed = None, scramble = True, num_jobs = 1)
+    train_iterator = Iterator(dataset=train_dataset, minibatch_size=16, process_func=voc2012_preprocessor.preprocess, random_seed=None, scramble=True, num_jobs=1)
 
     # Test iterator
     time_start = time.time()
@@ -440,12 +447,6 @@ if __name__ == '__main__':
     time_end = time.time()
     time_elapsed = time_end - time_start
     print("Time Elapsed: %02d:%02d:%02d" % (time_elapsed // 3600, (time_elapsed % 3600 // 60), (time_elapsed % 60 // 1)))
-
-
-
-
-
-
 
     '''
     images, labels = train_iterator.next_minibatch()
@@ -465,7 +466,3 @@ if __name__ == '__main__':
 
         cv2.imwrite(str(i) + '.jpg', image)
     '''
-
-
-
-

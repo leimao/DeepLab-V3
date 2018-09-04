@@ -1,8 +1,8 @@
 
 
 import os
-import numpy as np
 
+import numpy as np
 
 
 def train_valid_test_split(dataset_filenames, split_ratios, train_dataset_filename, valid_dataset_filename, test_dataset_filename):
@@ -15,7 +15,7 @@ def train_valid_test_split(dataset_filenames, split_ratios, train_dataset_filena
     test_dataset_filename: path of txt file to save the filenames of test data
     '''
 
-    assert len(split_ratios) == 3 and sum(split_ratios) > 1.0 - 1e-5 and sum(split_ratios) < 1.0 + 1e-5, 'Please use all the data.'
+    assert len(split_ratios) == 3 and abs(sum(split_ratios) - 1) < 1e-5, 'Please use all the data.'
 
     dataset_filenames = np.asarray(dataset_filenames)
     idx = np.arange(len(dataset_filenames))
@@ -34,14 +34,12 @@ def train_valid_test_split(dataset_filenames, split_ratios, train_dataset_filena
     with open(train_dataset_filename, 'w') as file:
         file.write('\n'.join(train_filenames))
     with open(valid_dataset_filename, 'w') as file:
-        file.writelines('\n'.join(valid_filenames))
+        file.write('\n'.join(valid_filenames))
     with open(test_dataset_filename, 'w') as file:
-        file.writelines('\n'.join(test_filenames))
+        file.write('\n'.join(test_filenames))
 
 
-
-
-def voc2012_train_valid_test_split(dataset_dir = './data/VOCdevkit/VOC2012', split_ratios = [0.7, 0.2, 0.1]):
+def voc2012_train_valid_test_split(dataset_dir='./data/VOCdevkit/VOC2012', split_ratios=[0.7, 0.2, 0.1]):
 
     images_dir = os.path.join(dataset_dir, 'JPEGImages')
     labels_dir = os.path.join(dataset_dir, 'SegmentationClass')
@@ -56,16 +54,18 @@ def voc2012_train_valid_test_split(dataset_dir = './data/VOCdevkit/VOC2012', spl
     test_dataset_filename = os.path.join(dataset_dir, 'test_dataset.txt')
 
     try:
-        train_valid_test_split(dataset_filenames = dataset_filenames, split_ratios = split_ratios, train_dataset_filename = train_dataset_filename, valid_dataset_filename = valid_dataset_filename, test_dataset_filename = test_dataset_filename)
-    except:
+        train_valid_test_split(
+            dataset_filenames=dataset_filenames,
+            split_ratios=split_ratios,
+            train_dataset_filename=train_dataset_filename,
+            valid_dataset_filename=valid_dataset_filename,
+            test_dataset_filename=test_dataset_filename)
+    except BaseException:
         raise Exception('Dataset split failed.')
 
     return train_dataset_filename, valid_dataset_filename, test_dataset_filename
 
 
-
-
-
 if __name__ == '__main__':
-    
+
     voc2012_train_valid_test_split()
