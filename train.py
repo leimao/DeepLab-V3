@@ -21,13 +21,13 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
     num_epochs = 1000
     minibatch_size = 8  # Unable to do minibatch_size = 12 :(
     random_seed = 0
-    #learning_rate = 0.00001
+    # learning_rate = 0.00001
     learning_rate = 0.0001
     batch_norm_decay = 0.9997
     model_filename = 'deeplab.ckpt'
     image_shape = [513, 513]
 
-    #validation_scales = [0.5, 1, 1.5]
+    # validation_scales = [0.5, 1, 1.5]
     validation_scales = [1]
 
     if not os.path.exists(model_dir):
@@ -77,7 +77,7 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
             num_pixel_labels_total += num_pixel_labels
             num_pixel_correct_predictions_total += num_pixel_correct_predictions
 
-            #validation_single_demo(image = image, label = np.squeeze(label, axis = -1), prediction = prediction, demo_dir = os.path.join(results_dir, 'validation_demo'), filename = str(j))
+            # validation_single_demo(image = image, label = np.squeeze(label, axis = -1), prediction = prediction, demo_dir = os.path.join(results_dir, 'validation_demo'), filename = str(j))
 
         """
         for _ in trange(np.ceil(valid_iterator.dataset_size / minibatch_size).astype(int)):

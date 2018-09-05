@@ -137,11 +137,10 @@ class Iterator(object):
         self.label_filenames = self.label_filenames[idx]
 
     def next_raw_data(self):
-        image_filename = self.image_filenames[self.current_index]
-        label_filename = self.label_filenames[self.current_index]
-        self.current_index += 1
-        if self.current_index >= self.dataset_size:
-            self.current_index = 0
+        index = self.current_index % self.dataset_size
+        image_filename = self.image_filenames[index]
+        label_filename = self.label_filenames[index]
+        self.current_index = index + 1
         image = read_image(image_filename=image_filename)
         label = read_label(label_filename=label_filename)
 
@@ -149,17 +148,15 @@ class Iterator(object):
 
     def next_minibatch(self):
 
-        image_filenames_minibatch = self.image_filenames[self.current_index: self.current_index + self.minibatch_size]
-        label_filenames_minibatch = self.label_filenames[self.current_index: self.current_index + self.minibatch_size]
-        self.current_index += self.minibatch_size
-        if self.current_index >= self.dataset_size:
-            self.current_index = 0
+        minibatch_indices = np.arange(self.current_index, self.current_index + self.minibatch_size) % self.dataset_size
+        image_filenames_minibatch = self.image_filenames[minibatch_indices]
+        label_filenames_minibatch = self.label_filenames[minibatch_indices]
+        self.current_index = minibatch_indices[-1]
 
         # Multithread image processing
         # Reference: https://www.kaggle.com/inoryy/fast-image-pre-process-in-parallel
 
-        results = Parallel(n_jobs=self.num_jobs)(delayed(self.process_func)(image_filename, label_filename)
-                                                 for image_filename, label_filename in zip(image_filenames_minibatch, label_filenames_minibatch))
+        results = Parallel(n_jobs=self.num_jobs)(delayed(self.process_func)(image_filename, label_filename) for image_filename, label_filename in zip(image_filenames_minibatch, label_filenames_minibatch))
         images, labels = zip(*results)
 
         images = np.asarray(images)
@@ -277,26 +274,32 @@ def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale
 
     scale_factor = np.random.uniform(low=min_scale_factor, high=max_scale_factor)
 
-    rescaled_size = [int(original_height * scale_factor), int(original_width * scale_factor)]
+    rescaled_size = [round(original_height * scale_factor), round(original_width * scale_factor)]
 
     image_augmented = image.copy()
     label_augmented = label.copy()
 
     image_augmented, label_augmented = resize_image_and_label(image=image_augmented, label=label_augmented, output_size=rescaled_size)
 
-    if rescaled_size[0] < target_height:
-        vertical_pad = int(target_height * 1.5) - rescaled_size[0]
-    else:
-        vertical_pad = int(rescaled_size[0] * 0.5)
+    # if rescaled_size[0] < target_height:
+    #     vertical_pad = round(target_height * 1.5) - rescaled_size[0]
+    # else:
+    #     vertical_pad = round(rescaled_size[0] * 0.5)
 
+    vertical_pad = round(target_height * 1.5) - rescaled_size[0]
+    if vertical_pad < 0:
+        vertical_pad = 0
     vertical_pad_up = vertical_pad // 2
     vertical_pad_down = vertical_pad - vertical_pad_up
 
-    if rescaled_size[1] < target_width:
-        horizonal_pad = int(target_width * 1.5) - rescaled_size[1]
-    else:
-        horizonal_pad = int(rescaled_size[1] * 0.5)
+    # if rescaled_size[1] < target_width:
+    #     horizonal_pad = round(target_width * 1.5) - rescaled_size[1]
+    # else:
+    #     horizonal_pad = round(rescaled_size[1] * 0.5)
 
+    horizonal_pad = round(target_width * 1.5) - rescaled_size[1]
+    if horizonal_pad < 0:
+        horizonal_pad = 0
     horizonal_pad_left = horizonal_pad // 2
     horizonal_pad_right = horizonal_pad - horizonal_pad_left
 
@@ -305,7 +308,7 @@ def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale
     image_augmented, label_augmented = random_crop(image=image_augmented, label=label_augmented, output_size=output_size)
 
     # Flip image and label
-    if np.random.random() > 0.5:
+    if np.random.random() < 0.5:
         image_augmented, label_augmented = flip_image_and_label(image=image_augmented, label=label_augmented)
 
     return image_augmented, label_augmented
@@ -370,6 +373,15 @@ def create_pascal_label_colormap():
     return colormap
 
 
+def static_vars(**kwargs):
+    def decorate(func):
+        for key, val in kwargs.items():
+            setattr(func, key, val)
+        return func
+    return decorate
+
+
+@static_vars(colormap=create_pascal_label_colormap())
 def label_to_color_image(label):
     '''
     Adds color defined by the dataset colormap to the label.
@@ -384,12 +396,10 @@ def label_to_color_image(label):
     if label.ndim != 2:
         raise ValueError('Expect 2-D input label')
 
-    if np.max(label) >= 256:
+    if np.max(label) > 255:
         raise ValueError('label value too large.')
 
-    colormap = create_pascal_label_colormap()
-
-    return colormap[label]
+    return label_to_color_image.colormap[label]
 
 
 def save_annotation(label, filename, add_colormap=True):
@@ -403,10 +413,8 @@ def save_annotation(label, filename, add_colormap=True):
     colormap_type: Colormap type for visualization.
     '''
     # Add colormap for visualizing the prediction.
-    if add_colormap:
-        colored_label = label_to_color_image(label)
-    else:
-        colored_label = label
+
+    colored_label = label_to_color_image(label) if add_colormap else label
 
     image = Image.fromarray(colored_label.astype(dtype=np.uint8))
     image.save(filename)
@@ -426,7 +434,6 @@ def validation_demo(images, labels, predictions, demo_dir):
         os.makedirs(demo_dir)
 
     for i in range(len(images)):
-
         cv2.imwrite(os.path.join(demo_dir, 'image_{}.jpg'.format(i)), images[i])
         save_annotation(label=labels[i], filename=os.path.join(demo_dir, 'image_{}_label.png'.format(i)), add_colormap=True)
         save_annotation(label=predictions[i], filename=os.path.join(demo_dir, 'image_{}_prediction.png'.format(i)), add_colormap=True)
@@ -445,8 +452,8 @@ def validation_single_demo(image, label, prediction, demo_dir, filename):
 """
 def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):
 
-    #Pixel intersection-over-union averaged across number of classes.
-    #Assuming valid labels are from 0 to num_classes - 1.
+    # Pixel intersection-over-union averaged across number of classes.
+    # Assuming valid labels are from 0 to num_classes - 1.
 
 
     assert labels.ndim == 3 and labels.shape == predictions.shape
@@ -477,15 +484,14 @@ def count_label_prediction_matches(labels, predictions, num_classes, ignore_labe
     num_pixel_correct_predictions = np.zeros(num_classes)
 
     for label, prediction in zip(labels, predictions):
-        #print(label.shape, prediction.shape)
         assert label.shape == prediction.shape
-        not_ignore_mask = np.not_equal(label, ignore_label).astype(np.int)
-        matched_pixels = (label == prediction) * not_ignore_mask
 
         for i in range(num_classes):
-            class_mask = (label == i)
-            num_pixel_labels[i] += np.sum(class_mask)
-            num_pixel_correct_predictions[i] += np.sum(matched_pixels * class_mask)
+            label_class_mask = label == i
+            prediction_class_mask = prediction == i
+            # num_pixel_labels[i] += np.sum(label_class_mask)
+            num_pixel_labels[i] += np.sum(label_class_mask | prediction_class_mask)
+            num_pixel_correct_predictions[i] += np.sum(label_class_mask & prediction_class_mask)
 
     return num_pixel_labels, num_pixel_correct_predictions
 
@@ -526,10 +532,10 @@ def multiscale_single_test(image, input_scales, predictor):
     image_width_raw = image.shape[1]
     multiscale_outputs = []
     for input_scale in input_scales:
-        image_height_scaled = int(image_height_raw * input_scale)
-        image_width_scaled = int(image_width_raw * input_scale)
+        image_height_scaled = round(image_height_raw * input_scale)
+        image_width_scaled = round(image_width_raw * input_scale)
         image_scaled = cv2.resize(image, (image_width_scaled, image_height_scaled), interpolation=cv2.INTER_LINEAR)
-        output = predictor(inputs=[image_scaled], target_height=image_height_raw, target_width=image_width_raw)[0]
+        output = predictor(inputs=[image_scaled], target_height=image_height_raw, target_width=image_width_raw)[0]  # TODO: check how predictor adapts to inputs of size different than target size
         multiscale_outputs.append(output)
 
     output_mean = np.mean(multiscale_outputs, axis=0)
@@ -544,8 +550,8 @@ def multiscale_single_validate(image, label, input_scales, validator):
     multiscale_outputs = []
     multiscale_losses = []
     for input_scale in input_scales:
-        image_height_scaled = int(image_height_raw * input_scale)
-        image_width_scaled = int(image_width_raw * input_scale)
+        image_height_scaled = round(image_height_raw * input_scale)
+        image_width_scaled = round(image_width_raw * input_scale)
         image_scaled = cv2.resize(image, (image_width_scaled, image_height_scaled), interpolation=cv2.INTER_LINEAR)
         output, loss = validator(inputs=[image_scaled], target_height=image_height_raw, target_width=image_width_raw, labels=[label])
         multiscale_outputs.append(output[0])
@@ -592,11 +598,11 @@ def multiscale_test(image, scales, predictor):
 
 def multiscale_test(image, scales, predictor, input_shape):
 
-    #Predict image semantic segmentation labeling using multi-scale inputs.
-    #images: numpy array, [height, width, channel], channel = 3.
-    #scales: list of scale factors. e.g., [0.5, 1.0, 1.5].
-    #predictor: prediction function which takes one scaled image as input and outputs its semantic segmentation labelings.
-    #input_shape: the input shape of image to the predictor function.
+    # Predict image semantic segmentation labeling using multi-scale inputs.
+    # images: numpy array, [height, width, channel], channel = 3.
+    # scales: list of scale factors. e.g., [0.5, 1.0, 1.5].
+    # predictor: prediction function which takes one scaled image as input and outputs its semantic segmentation labelings.
+    # input_shape: the input shape of image to the predictor function.
 
 
     assert image.ndim == 3 and image.shape[2] == 3, 'Incorrect input image dimensions.'
@@ -612,8 +618,7 @@ if __name__ == '__main__':
 
     np.random.seed(0)
 
-    train_dataset = Dataset(dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', images_dir='./data/VOCdevkit/VOC2012/JPEGImages',
-                            labels_dir='./data/VOCdevkit/VOC2012/SegmentationClass', image_extension='.jpg', label_extension='.png')
+    train_dataset = Dataset(dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', images_dir='./data/VOCdevkit/VOC2012/JPEGImages', labels_dir='./data/VOCdevkit/VOC2012/SegmentationClass', image_extension='.jpg', label_extension='.png')
     print(train_dataset.image_filenames)
     print(train_dataset.size)
 
@@ -630,7 +635,7 @@ if __name__ == '__main__':
     for i in range(10):
         print(i)
         images, labels = train_iterator.next_minibatch()
-        #print(images.shape, labels.shape)
+        # print(images.shape, labels.shape)
     time_end = time.time()
     time_elapsed = time_end - time_start
     print("Time Elapsed: %02d:%02d:%02d" % (time_elapsed // 3600, (time_elapsed % 3600 // 60), (time_elapsed % 60 // 1)))
@@ -647,8 +652,8 @@ if __name__ == '__main__':
         label = np.squeeze(label, axis = -1)
         print(type(label), label.shape)
         save_annotation(label = label, filename = str(i) + '.png', add_colormap = True)
-        #label = Image.fromarray(image.astype(np.uint8))
-        #label.save(str(i) + '.png')
+        # label = Image.fromarray(image.astype(np.uint8))
+        # label.save(str(i) + '.png')
 
 
         cv2.imwrite(str(i) + '.jpg', image)
