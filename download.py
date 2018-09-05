@@ -27,7 +27,7 @@ class TqdmUpTo(tqdm):
 
         if tsize is not None:
             self.total = tsize
-        self.update(b * bsize - self.n)  # will also set self.n = b * bsize
+        self.update(b * bsize - self.n) # will also set self.n = b * bsize
 
 
 def maybe_download(filename, url, destination_dir, expected_bytes=None, force=False):

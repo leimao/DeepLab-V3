@@ -52,7 +52,7 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
 
     model = DeepLab(is_training=True, num_classes=num_classes, ignore_label=ignore_label, base_architecture='resnet_v2_101', batch_norm_decay=batch_norm_decay, pre_trained_model=pre_trained_model, log_dir=log_dir)
 
-    best_IoU = 0
+    best_mIoU = 0
 
     for i in range(num_epochs):
 
@@ -65,7 +65,6 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
         num_pixel_correct_predictions_total = np.zeros(num_classes)
 
         # Multi-scale inputs prediction
-
         for _ in trange(valid_iterator.dataset_size):
             image, label = valid_iterator.next_raw_data()
             image = subtract_channel_means(image=image, channel_means=channel_means)
@@ -73,12 +72,12 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
             output, valid_loss = multiscale_single_validate(image=image, label=label, input_scales=validation_scales, validator=model.validate)
             prediction = np.argmax(output, axis=-1)
             valid_loss_total += valid_loss
-            num_pixel_labels, num_pixel_correct_predictions = count_label_prediction_matches(labels=[label], predictions=[prediction], num_classes=num_classes, ignore_label=ignore_label)
+            num_pixel_labels, num_pixel_correct_predictions = count_label_prediction_matches(labels=[np.squeeze(label, axis=-1)], predictions=[prediction], num_classes=num_classes, ignore_label=ignore_label)
 
             num_pixel_labels_total += num_pixel_labels
             num_pixel_correct_predictions_total += num_pixel_correct_predictions
 
-            # validation_single_demo(image = image, label = np.squeeze(label, axis = -1), prediction = prediction, demo_dir = os.path.join(results_dir, 'validation_demo'), filename = str(j))
+            # validation_single_demo(image=image, label=np.squeeze(label, axis=-1), prediction=prediction, demo_dir=os.path.join(results_dir, 'validation_demo'), filename=str(j))
 
         """
         for _ in trange(np.ceil(valid_iterator.dataset_size / minibatch_size).astype(int)):
@@ -97,20 +96,16 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
         validation_demo(images = images, labels = np.squeeze(labels, axis = -1), predictions = predictions, demo_dir = os.path.join(results_dir, 'validation_demo'))
         """
 
-        print(num_pixel_labels_total)
-        print(num_pixel_correct_predictions_total)
-        print(num_pixel_correct_predictions_total / num_pixel_labels_total)
-
         mean_IOU = mean_intersection_over_union(num_pixel_labels=num_pixel_labels_total, num_pixel_correct_predictions=num_pixel_correct_predictions_total)
 
         valid_loss_ave = valid_loss_total / valid_iterator.dataset_size
 
         print('Validation loss: {:.4f} | mIOU: {:.4f}'.format(valid_loss_ave, mean_IOU))
 
-        if mean_IOU > best_IoU:
-            best_IoU = mean_IOU
-            model_savename = f"{best_IoU}_{model_filename}"
-            print(f'New best IoU achieved, model saved as {model_savename}.')
+        if mean_IOU > best_mIoU:
+            best_mIoU = mean_IOU
+            model_savename = f"{best_mIoU:.4f}_{model_filename}"
+            print(f'New best mIoU achieved, model saved as {model_savename}.')
             model.save(model_dir, model_savename)
 
         print('Start training ...')

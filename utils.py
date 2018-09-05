@@ -143,6 +143,7 @@ class Iterator(object):
         self.current_index = index + 1
         image = read_image(image_filename=image_filename)
         label = read_label(label_filename=label_filename)
+        label = np.expand_dims(label, axis=2)
 
         return image, label
 
@@ -177,7 +178,6 @@ def read_label(label_filename):
     # Magic function to read VOC2012 semantic labels
     # https://github.com/tensorflow/models/blob/master/research/deeplab/datasets/remove_gt_colormap.py#L42
     label = np.asarray(Image.open(label_filename))
-    # label = np.expand_dims(label, axis=2)
 
     return label
 
@@ -207,7 +207,6 @@ def resize_image_and_label(image, label, output_size):
 
     image_resized = cv2.resize(image, (output_size[1], output_size[0]), interpolation=cv2.INTER_LINEAR)
     label_resized = cv2.resize(label, (output_size[1], output_size[0]), interpolation=cv2.INTER_NEAREST)
-    # label_resized = np.expand_dims(label_resized, axis=2)
 
     return image_resized, label_resized
 
@@ -219,7 +218,6 @@ def pad_image_and_label(image, label, top, bottom, left, right, pixel_value=0, l
 
     image_padded = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pixel_value)
     label_padded = cv2.copyMakeBorder(label, top, bottom, left, right, cv2.BORDER_CONSTANT, value=label_value)
-    # label_padded = np.expand_dims(label_padded, axis=2)
 
     return image_padded, label_padded
 
@@ -503,23 +501,6 @@ def mean_intersection_over_union(num_pixel_labels, num_pixel_correct_predictions
 
     valid_classes = num_pixel_labels > 0
     mean_iou = np.mean(num_pixel_correct_predictions[valid_classes] / num_pixel_labels[valid_classes])
-
-    # num_classes = len(num_pixel_labels)
-
-    # num_existing_classes = 0
-    # iou_sum = 0
-
-    # for i in range(num_classes):
-
-    #     if num_pixel_labels[i] == 0:
-    #         continue
-
-    #     num_existing_classes += 1
-    #     iou_sum += num_pixel_correct_predictions[i] / num_pixel_labels[i]
-
-    # assert num_existing_classes != 0
-
-    # mean_iou = iou_sum / num_existing_classes
 
     return mean_iou
 

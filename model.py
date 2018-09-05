@@ -68,7 +68,7 @@ class DeepLab(object):
         if self.is_training:
             exclude = [self.base_architecture + '/logits', 'global_step']
             variables_to_restore = tf.contrib.slim.get_variables_to_restore(exclude=exclude)
-            tf.train.init_from_checkpoint(self.pre_trained_model, {v.name.split(':')[0]: v for v in variables_to_restore})  # TODO: check if necessary to use only what's before ':'
+            tf.train.init_from_checkpoint(self.pre_trained_model, {v.name.split(':')[0]: v for v in variables_to_restore})
 
         feature_map = end_points[self.base_architecture + '/block4']
 
@@ -80,8 +80,7 @@ class DeepLab(object):
             pools = atrous_spatial_pyramid_pooling(inputs=self.feature_map, filters=256)
             logits = tf.layers.conv2d(inputs=pools, filters=self.num_classes, kernel_size=(1, 1), activation=None, name='logits')
             outputs = tf.image.resize_bilinear(images=logits, size=(self.target_height, self.target_width), name='resized_outputs')
-
-            # outputs = tf.image.resize_nearest_neighbor(images = logits, size = (self.target_height, self.target_width), name = 'resized_outputs')
+            # outputs = tf.image.resize_nearest_neighbor(images=logits, size=(self.target_height, self.target_width), name='resized_outputs')
 
         return outputs
 
