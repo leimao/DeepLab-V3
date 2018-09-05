@@ -12,6 +12,7 @@ class DeepLab(object):
     def __init__(self, is_training, num_classes, ignore_label=255, base_architecture='resnet_v2_101', batch_norm_decay=0.9997, pre_trained_model='./models/resnet_101/resnet_v2_101.ckpt', log_dir='./log'):
 
         self.is_training = is_training
+        self.is_training_bn = tf.placeholder(tf.bool, None, name='is_training_bn')
         self.num_classes = num_classes
         self.ignore_label = ignore_label
         self.base_architecture = base_architecture
@@ -24,6 +25,8 @@ class DeepLab(object):
         self.target_width = tf.placeholder(tf.int32, None, name='target_image_width')
 
         self.pre_trained_model = pre_trained_model
+        self.weight_decay = tf.placeholder(tf.float32, None, name='weight_decay')
+        self.regularizer = tf.contrib.layers.l2_regularizer(scale=self.weight_decay)
         self.batch_norm_decay = batch_norm_decay
 
         self.feature_map = self.backbone_initializer()
@@ -62,8 +65,8 @@ class DeepLab(object):
     def resnet_initializer(self):
 
         # Feature map extraction from backbone model
-        with tf.contrib.slim.arg_scope(resnet_v2.resnet_arg_scope(batch_norm_decay=self.batch_norm_decay)):
-            _, end_points = self.base_model(inputs=self.inputs, num_classes=None, is_training=self.is_training, global_pool=False, output_stride=16)
+        with tf.contrib.slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=self.weight_decay, batch_norm_decay=self.batch_norm_decay)):
+            _, end_points = self.base_model(inputs=self.inputs, num_classes=None, is_training=self.is_training_bn, global_pool=False, output_stride=16)
 
         if self.is_training:
             exclude = [self.base_architecture + '/logits', 'global_step']
@@ -77,7 +80,7 @@ class DeepLab(object):
     def model_initializer(self):
 
         with tf.name_scope('encoder'):
-            pools = atrous_spatial_pyramid_pooling(inputs=self.feature_map, filters=256)
+            pools = atrous_spatial_pyramid_pooling(inputs=self.feature_map, filters=256, regularizer=self.regularizer)
             logits = tf.layers.conv2d(inputs=pools, filters=self.num_classes, kernel_size=(1, 1), activation=None, name='logits')
             outputs = tf.image.resize_bilinear(images=logits, size=(self.target_height, self.target_width), name='resized_outputs')
             # outputs = tf.image.resize_nearest_neighbor(images=logits, size=(self.target_height, self.target_width), name='resized_outputs')
@@ -110,9 +113,9 @@ class DeepLab(object):
 
         return train_loss_summary, valid_loss_summary
 
-    def train(self, inputs, labels, target_height, target_width, learning_rate):
+    def train(self, inputs, labels, target_height, target_width, learning_rate, weight_decay):
 
-        _, outputs, train_loss, summaries = self.sess.run([self.optimizer, self.outputs, self.loss, self.train_summaries], feed_dict={self.inputs: inputs, self.labels: labels, self.learning_rate: learning_rate, self.target_height: target_height, self.target_width: target_width})
+        _, outputs, train_loss, summaries = self.sess.run([self.optimizer, self.outputs, self.loss, self.train_summaries], feed_dict={self.inputs: inputs, self.labels: labels, self.learning_rate: learning_rate, self.target_height: target_height, self.target_width: target_width, self.weight_decay: weight_decay, self.is_training_bn: True})
 
         self.writer.add_summary(summaries, self.train_step)
         self.train_step += 1
@@ -121,7 +124,7 @@ class DeepLab(object):
 
     def validate(self, inputs, labels, target_height, target_width):
 
-        outputs, valid_loss, summaries = self.sess.run([self.outputs, self.loss, self.valid_summaries], feed_dict={self.inputs: inputs, self.labels: labels, self.target_height: target_height, self.target_width: target_width})
+        outputs, valid_loss, summaries = self.sess.run([self.outputs, self.loss, self.valid_summaries], feed_dict={self.inputs: inputs, self.labels: labels, self.target_height: target_height, self.target_width: target_width, self.is_training_bn: False})
 
         self.writer.add_summary(summaries, self.train_step)
 
@@ -129,7 +132,7 @@ class DeepLab(object):
 
     def test(self, inputs, target_height, target_width):
 
-        outputs = self.sess.run(self.outputs, feed_dict={self.inputs: inputs, self.target_height: target_height, self.target_width: target_width})
+        outputs = self.sess.run(self.outputs, feed_dict={self.inputs: inputs, self.target_height: target_height, self.target_width: target_width, self.is_training_bn: False})
 
         return outputs
 

@@ -70,8 +70,9 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
             image = subtract_channel_means(image=image, channel_means=channel_means)
 
             output, valid_loss = multiscale_single_validate(image=image, label=label, input_scales=validation_scales, validator=model.validate)
-            prediction = np.argmax(output, axis=-1)
             valid_loss_total += valid_loss
+
+            prediction = np.argmax(output, axis=-1)
             num_pixel_labels, num_pixel_correct_predictions = count_label_prediction_matches(labels=[np.squeeze(label, axis=-1)], predictions=[prediction], num_classes=num_classes, ignore_label=ignore_label)
 
             num_pixel_labels_total += num_pixel_labels
@@ -79,28 +80,26 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
 
             # validation_single_demo(image=image, label=np.squeeze(label, axis=-1), prediction=prediction, demo_dir=os.path.join(results_dir, 'validation_demo'), filename=str(j))
 
-        """
+        '''
         for _ in trange(np.ceil(valid_iterator.dataset_size / minibatch_size).astype(int)):
-
             images, labels = valid_iterator.next_minibatch()
-            num_samples = len(images)
-            outputs, valid_loss = model.validate(inputs = images, target_height = image_shape[0], target_width = image_shape[1], labels = labels)
-            predictions = np.argmax(outputs, axis = -1)
-            valid_loss_total += valid_loss * num_samples
+            outputs, valid_loss = model.validate(inputs=images, target_height=image_shape[0], target_width=image_shape[1], labels=labels)
+            valid_loss_total += valid_loss
 
+            predictions = np.argmax(outputs, axis=-1)
             num_pixel_labels, num_pixel_correct_predictions = count_label_prediction_matches(labels=np.squeeze(labels, axis=-1), predictions=predictions, num_classes=num_classes, ignore_label=ignore_label)
 
             num_pixel_labels_total += num_pixel_labels
             num_pixel_correct_predictions_total += num_pixel_correct_predictions
 
-        validation_demo(images = images, labels = np.squeeze(labels, axis = -1), predictions = predictions, demo_dir = os.path.join(results_dir, 'validation_demo'))
-        """
+            validation_demo(images=images, labels=np.squeeze(labels, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'validation_demo'))
+        '''
 
         mean_IOU = mean_intersection_over_union(num_pixel_labels=num_pixel_labels_total, num_pixel_correct_predictions=num_pixel_correct_predictions_total)
 
         valid_loss_ave = valid_loss_total / valid_iterator.dataset_size
 
-        print('Validation loss: {:.4f} | mIOU: {:.4f}'.format(valid_loss_ave, mean_IOU))
+        print('Validation loss: {:.4f} | mIoU: {:.4f}'.format(valid_loss_ave, mean_IOU))
 
         if mean_IOU > best_mIoU:
             best_mIoU = mean_IOU
@@ -111,20 +110,32 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
         print('Start training ...')
 
         debug_mode = False
-
         train_loss_total = 0
+        num_pixel_labels_total = np.zeros(num_classes)
+        num_pixel_correct_predictions_total = np.zeros(num_classes)
+
         for _ in trange(np.ceil(train_iterator.dataset_size / minibatch_size).astype(int)):
             images, labels = train_iterator.next_minibatch()
-            outputs, train_loss = model.train(inputs=images, labels=labels, target_height=image_shape[0], target_width=image_shape[1], learning_rate=learning_rate)
-            if debug_mode:
-                predictions = np.argmax(outputs, axis=-1)
-                validation_demo(images=images, labels=np.squeeze(labels, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'training_demo'))
+            weight_decay = 0.0001 * sum(labels != ignore_label) / labels.size
+            outputs, train_loss = model.train(inputs=images, labels=labels, target_height=image_shape[0], target_width=image_shape[1], learning_rate=learning_rate, weight_decay=weight_decay)
             train_loss_total += train_loss
+
+            predictions = np.argmax(outputs, axis=-1)
+            num_pixel_labels, num_pixel_correct_predictions = count_label_prediction_matches(labels=np.squeeze(labels, axis=-1), predictions=predictions, num_classes=num_classes, ignore_label=ignore_label)
+
+            num_pixel_labels_total += num_pixel_labels
+            num_pixel_correct_predictions_total += num_pixel_correct_predictions
+
+            if debug_mode:
+                validation_demo(images=images, labels=np.squeeze(labels, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'training_demo'))
 
         train_iterator.shuffle_dataset()
 
+        mIoU = mean_intersection_over_union(num_pixel_labels=num_pixel_labels_total, num_pixel_correct_predictions=num_pixel_correct_predictions_total)
         train_loss_ave = train_loss_total / train_iterator.dataset_size
-        print('Training loss: {:.4f}'.format(train_loss_ave))
+        print('Training loss: {:.4f} | mIoU: {:.4f}'.format(train_loss_ave, mIoU))
+
+    model.close()
 
 
 if __name__ == '__main__':
