@@ -177,7 +177,7 @@ def read_label(label_filename):
     # Magic function to read VOC2012 semantic labels
     # https://github.com/tensorflow/models/blob/master/research/deeplab/datasets/remove_gt_colormap.py#L42
     label = np.asarray(Image.open(label_filename))
-    label = np.expand_dims(label, axis=2)
+    # label = np.expand_dims(label, axis=2)
 
     return label
 
@@ -207,19 +207,19 @@ def resize_image_and_label(image, label, output_size):
 
     image_resized = cv2.resize(image, (output_size[1], output_size[0]), interpolation=cv2.INTER_LINEAR)
     label_resized = cv2.resize(label, (output_size[1], output_size[0]), interpolation=cv2.INTER_NEAREST)
-    label_resized = np.expand_dims(label_resized, axis=2)
+    # label_resized = np.expand_dims(label_resized, axis=2)
 
     return image_resized, label_resized
 
 
-def pad_image_and_label(image, label, top, bottom, left, right, pixel_value=0, label_value=0):
+def pad_image_and_label(image, label, top, bottom, left, right, pixel_value=0, label_value=255):
     '''
     https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_core/py_basic_ops/py_basic_ops.html#making-borders-for-images-padding
     '''
 
     image_padded = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pixel_value)
     label_padded = cv2.copyMakeBorder(label, top, bottom, left, right, cv2.BORDER_CONSTANT, value=label_value)
-    label_padded = np.expand_dims(label_padded, axis=2)
+    # label_padded = np.expand_dims(label_padded, axis=2)
 
     return image_padded, label_padded
 
@@ -303,13 +303,15 @@ def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale
     horizonal_pad_left = horizonal_pad // 2
     horizonal_pad_right = horizonal_pad - horizonal_pad_left
 
-    image_augmented, label_augmented = pad_image_and_label(image=image_augmented, label=label_augmented, top=vertical_pad_up, bottom=vertical_pad_down, left=horizonal_pad_left, right=horizonal_pad_right, pixel_value=0, label_value=0)
+    image_augmented, label_augmented = pad_image_and_label(image=image_augmented, label=label_augmented, top=vertical_pad_up, bottom=vertical_pad_down, left=horizonal_pad_left, right=horizonal_pad_right, pixel_value=0, label_value=255)
 
     image_augmented, label_augmented = random_crop(image=image_augmented, label=label_augmented, output_size=output_size)
 
     # Flip image and label
     if np.random.random() < 0.5:
         image_augmented, label_augmented = flip_image_and_label(image=image_augmented, label=label_augmented)
+
+    label_augmented = np.expand_dims(label_augmented, axis=2)
 
     return image_augmented, label_augmented
 
@@ -327,10 +329,11 @@ class DataPreprocessor(object):
         # Read data from file
         image = read_image(image_filename=image_filename)
         label = read_label(label_filename=label_filename)
-        image, label = image_augmentaion(image=image, label=label, output_size=self.output_size, min_scale_factor=self.min_scale_factor, max_scale_factor=self.max_scale_factor)
 
         # Image normalization
         image = subtract_channel_means(image=image, channel_means=self.channel_means)
+
+        image, label = image_augmentaion(image=image, label=label, output_size=self.output_size, min_scale_factor=self.min_scale_factor, max_scale_factor=self.max_scale_factor)
 
         return image, label
 
@@ -498,22 +501,25 @@ def count_label_prediction_matches(labels, predictions, num_classes, ignore_labe
 
 def mean_intersection_over_union(num_pixel_labels, num_pixel_correct_predictions):
 
-    num_classes = len(num_pixel_labels)
+    valid_classes = num_pixel_labels > 0
+    mean_iou = np.mean(num_pixel_correct_predictions[valid_classes] / num_pixel_labels[valid_classes])
 
-    num_existing_classes = 0
-    iou_sum = 0
+    # num_classes = len(num_pixel_labels)
 
-    for i in range(num_classes):
+    # num_existing_classes = 0
+    # iou_sum = 0
 
-        if num_pixel_labels[i] == 0:
-            continue
+    # for i in range(num_classes):
 
-        num_existing_classes += 1
-        iou_sum += num_pixel_correct_predictions[i] / num_pixel_labels[i]
+    #     if num_pixel_labels[i] == 0:
+    #         continue
 
-    assert num_existing_classes != 0
+    #     num_existing_classes += 1
+    #     iou_sum += num_pixel_correct_predictions[i] / num_pixel_labels[i]
 
-    mean_iou = iou_sum / num_existing_classes
+    # assert num_existing_classes != 0
+
+    # mean_iou = iou_sum / num_existing_classes
 
     return mean_iou
 
@@ -535,7 +541,7 @@ def multiscale_single_test(image, input_scales, predictor):
         image_height_scaled = round(image_height_raw * input_scale)
         image_width_scaled = round(image_width_raw * input_scale)
         image_scaled = cv2.resize(image, (image_width_scaled, image_height_scaled), interpolation=cv2.INTER_LINEAR)
-        output = predictor(inputs=[image_scaled], target_height=image_height_raw, target_width=image_width_raw)[0]  # TODO: check how predictor adapts to inputs of size different than target size
+        output = predictor(inputs=[image_scaled], target_height=image_height_raw, target_width=image_width_raw)[0]
         multiscale_outputs.append(output)
 
     output_mean = np.mean(multiscale_outputs, axis=0)
