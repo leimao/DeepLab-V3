@@ -21,7 +21,7 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
     minibatch_size = 8  # Unable to do minibatch_size = 12 :(
     random_seed = 0
     learning_rate = 1e-4
-    batch_norm_decay = 0.9997
+    batch_norm_decay = 0.99
     model_filename = 'deeplab.ckpt'
     image_shape = [513, 513]
 
