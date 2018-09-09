@@ -21,7 +21,7 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
     minibatch_size = 8  # Unable to do minibatch_size = 12 :(
     random_seed = 0
     learning_rate = 1e-4
-    batch_norm_decay = 0.996
+    batch_norm_decay = 0.99
     model_filename = 'deeplab.ckpt'
     image_shape = [513, 513]
 
@@ -117,7 +117,7 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
 
         for _ in trange(np.ceil(train_iterator.dataset_size / minibatch_size).astype(int)):
             images, labels = train_iterator.next_minibatch()
-            weight_decay = 1e-4 * sum(labels != ignore_label) / labels.size
+            weight_decay = 5e-4 * sum(labels != ignore_label) / labels.size
             outputs, train_loss = model.train(inputs=images, labels=labels, target_height=image_shape[0], target_width=image_shape[1], learning_rate=learning_rate, weight_decay=weight_decay)
             train_loss_total += train_loss
 

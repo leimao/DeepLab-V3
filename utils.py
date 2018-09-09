@@ -137,10 +137,13 @@ class Iterator(object):
         self.label_filenames = self.label_filenames[idx]
 
     def next_raw_data(self):
-        index = self.current_index % self.dataset_size
-        image_filename = self.image_filenames[index]
-        label_filename = self.label_filenames[index]
-        self.current_index = index + 1
+
+        image_filename = self.image_filenames[self.current_index]
+        label_filename = self.label_filenames[self.current_index]
+        self.current_index += 1
+        if self.current_index >= self.dataset_size:
+            self.current_index = 0
+
         image = read_image(image_filename=image_filename)
         label = read_label(label_filename=label_filename)
         label = np.expand_dims(label, axis=2)
@@ -149,10 +152,11 @@ class Iterator(object):
 
     def next_minibatch(self):
 
-        minibatch_indices = np.arange(self.current_index, self.current_index + self.minibatch_size) % self.dataset_size
-        image_filenames_minibatch = self.image_filenames[minibatch_indices]
-        label_filenames_minibatch = self.label_filenames[minibatch_indices]
-        self.current_index = minibatch_indices[-1]
+        image_filenames_minibatch = self.image_filenames[self.current_index: self.current_index + self.minibatch_size]
+        label_filenames_minibatch = self.label_filenames[self.current_index: self.current_index + self.minibatch_size]
+        self.current_index += self.minibatch_size
+        if self.current_index >= self.dataset_size:
+            self.current_index = 0
 
         # Multithread image processing
         # Reference: https://www.kaggle.com/inoryy/fast-image-pre-process-in-parallel
