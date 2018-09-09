@@ -4,18 +4,17 @@ from datetime import datetime
 
 import tensorflow as tf
 from modules import atrous_spatial_pyramid_pooling
-from tensorflow.contrib.slim.nets import resnet_v2
+from feature_extractor import Vgg16, Resnet
 
 
 class DeepLab(object):
 
-    def __init__(self, is_training, num_classes, ignore_label=255, base_architecture='resnet_v2_101', batch_norm_decay=0.9997, pre_trained_model='./models/resnet_101/resnet_v2_101.ckpt', log_dir='./log'):
+    def __init__(self, is_training, num_classes, ignore_label=255, base_architecture='resnet_v2_101', batch_norm_momentum=0.9997, pre_trained_model=None, log_dir='./log'):
 
         self.is_training = is_training
         self.is_training_bn = tf.placeholder(tf.bool, None, name='is_training_bn')
         self.num_classes = num_classes
         self.ignore_label = ignore_label
-        self.base_architecture = base_architecture
         self.inputs_shape = [None, None, None, 3]
         self.labels_shape = [None, None, None, 1]
         self.inputs = tf.placeholder(tf.float32, shape=self.inputs_shape, name='inputs')
@@ -24,12 +23,13 @@ class DeepLab(object):
         self.target_height = tf.placeholder(tf.int32, None, name='target_image_height')
         self.target_width = tf.placeholder(tf.int32, None, name='target_image_width')
 
-        self.pre_trained_model = pre_trained_model
         self.weight_decay = tf.placeholder(tf.float32, None, name='weight_decay')
         self.regularizer = tf.contrib.layers.l2_regularizer(scale=self.weight_decay)
-        self.batch_norm_decay = batch_norm_decay
+        self.batch_norm_momentum = batch_norm_momentum
 
-        self.feature_map = self.backbone_initializer()
+        self.feature_map = self.backbone_initializer(base_architecture)
+        if pre_trained_model:
+            self.initialize_backbone_from_pretrained_weights(pre_trained_model)
         self.outputs = self.model_initializer()
 
         self.learning_rate = tf.placeholder(tf.float32, None, name='learning_rate')
@@ -48,34 +48,17 @@ class DeepLab(object):
             self.writer = tf.summary.FileWriter(self.log_dir, tf.get_default_graph())
             self.train_summaries, self.valid_summaries = self.summary()
 
-    def backbone_initializer(self):
+    def backbone_initializer(self, base_architecture):
+        with tf.variable_scope('backbone'):
+            if base_architecture == 'vgg16':
+                features = Vgg16(self.inputs, self.weight_decay, self.batch_norm_momentum)
+            elif base_architecture.startswith('resnet'):
+                n_layers = int(base_architecture.split('_')[-1])
+                features = Resnet(n_layers, self.inputs, self.weight_decay, self.batch_norm_momentum, self.is_training_bn)
+            else:
+                raise ValueError('Unknown backbone architecture!')
 
-        if self.base_architecture == 'resnet_v2_101':
-            self.base_model = resnet_v2.resnet_v2_101
-            feature_map = self.resnet_initializer()
-
-        elif self.base_architecture == 'resnet_v2_50':
-            self.base_model = resnet_v2.resnet_v2_50
-            feature_map = self.resnet_initializer()
-        else:
-            raise Exception('Unknown backbone architecture')
-
-        return feature_map
-
-    def resnet_initializer(self):
-
-        # Feature map extraction from backbone model
-        with tf.contrib.slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=self.weight_decay, batch_norm_decay=self.batch_norm_decay)):
-            _, end_points = self.base_model(inputs=self.inputs, num_classes=None, is_training=self.is_training_bn, global_pool=False, output_stride=16)
-
-        if self.is_training:
-            exclude = [self.base_architecture + '/logits', 'global_step']
-            variables_to_restore = tf.contrib.slim.get_variables_to_restore(exclude=exclude)
-            tf.train.init_from_checkpoint(self.pre_trained_model, {v.name.split(':')[0]: v for v in variables_to_restore})
-
-        feature_map = end_points[self.base_architecture + '/block4']
-
-        return feature_map
+        return features
 
     def model_initializer(self):
 
@@ -149,6 +132,11 @@ class DeepLab(object):
 
         self.saver.restore(self.sess, filepath)
 
+    def initialize_backbone_from_pretrained_weights(self, path_to_pretrained_weights):
+        variables_to_restore = tf.contrib.slim.get_variables_to_restore(exclude=['global_step'])
+        valid_prefix = 'backbone/'
+        tf.train.init_from_checkpoint(path_to_pretrained_weights, {v.name[len(valid_prefix):].split(':')[0]: v for v in variables_to_restore if v.name.startswith(valid_prefix)})
+
     def close(self):
         self.writer.close()
         self.sess.close()
@@ -156,6 +144,6 @@ class DeepLab(object):
 
 if __name__ == '__main__':
 
-    deeplab = DeepLab(is_training=True, num_classes=10, base_architecture='resnet_v2_101', batch_norm_decay=0.9997, pre_trained_model='./models/resnet_101/resnet_v2_101.ckpt')
+    deeplab = DeepLab(is_training=True, num_classes=10, base_architecture='resnet_v2_101', batch_norm_momentum=0.9997, pre_trained_model='./models/resnet_101/resnet_v2_101.ckpt')
     print('Graph compile successful.')
     deeplab.close()
