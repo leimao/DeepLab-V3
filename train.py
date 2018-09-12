@@ -13,16 +13,18 @@ from utils import (DataPreprocessor, Dataset, Iterator,
                    validation_single_demo)
 
 
-def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', valid_dataset_filename='./data/VOCdevkit/VOC2012/valid_dataset.txt', images_dir='./data/VOCdevkit/VOC2012/JPEGImages', labels_dir='./data/VOCdevkit/VOC2012/SegmentationClass', pre_trained_model='./models/resnet_50/resnet_v2_50.ckpt', model_dir='./models/voc2012', results_dir='./results', log_dir='./log'):
+def train(network_backbone, pre_trained_model=None, train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', valid_dataset_filename='./data/VOCdevkit/VOC2012/valid_dataset.txt', images_dir='./data/VOCdevkit/VOC2012/JPEGImages', labels_dir='./data/VOCdevkit/VOC2012/SegmentationClass', model_dir=None, results_dir='./results', log_dir='./log'):
 
+    if not model_dir:
+        model_dir = f'./models/deeplab/{network_backbone}_voc2012'
     num_classes = 21
     ignore_label = 255
     num_epochs = 1000
     minibatch_size = 8  # Unable to do minibatch_size = 12 :(
     random_seed = 0
     learning_rate = 1e-4
+    weight_decay = 5e-4
     batch_norm_decay = 0.99
-    model_filename = 'deeplab.ckpt'
     image_shape = [513, 513]
 
     # validation_scales = [0.5, 1, 1.5]
@@ -48,8 +50,7 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
     train_iterator = Iterator(dataset=train_dataset, minibatch_size=minibatch_size, process_func=voc2012_preprocessor.preprocess, random_seed=random_seed, scramble=True, num_jobs=1)
     valid_iterator = Iterator(dataset=valid_dataset, minibatch_size=minibatch_size, process_func=voc2012_preprocessor.preprocess, random_seed=None, scramble=False, num_jobs=1)
 
-    # model = DeepLab(is_training=True, num_classes=num_classes, ignore_label=ignore_label, base_architecture='resnet_v2_50', batch_norm_momentum=batch_norm_decay, pre_trained_model=pre_trained_model, log_dir=log_dir)
-    model = DeepLab(is_training=True, num_classes=num_classes, ignore_label=ignore_label, base_architecture='vgg16', batch_norm_momentum=batch_norm_decay, pre_trained_model=None, log_dir=log_dir)
+    model = DeepLab(network_backbone, num_classes=num_classes, ignore_label=ignore_label, batch_norm_momentum=batch_norm_decay, pre_trained_model=pre_trained_model, log_dir=log_dir)
 
     best_mIoU = 0
 
@@ -102,7 +103,7 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
 
         if mean_IOU > best_mIoU:
             best_mIoU = mean_IOU
-            model_savename = f"{best_mIoU:.4f}_{model_filename}"
+            model_savename = f'{network_backbone}_{best_mIoU:.4f}.ckpt'
             print(f'New best mIoU achieved, model saved as {model_savename}.')
             model.save(model_dir, model_savename)
 
@@ -115,8 +116,8 @@ def train(train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', v
 
         for _ in trange(np.ceil(train_iterator.dataset_size / minibatch_size).astype(int)):
             images, labels = train_iterator.next_minibatch()
-            weight_decay = 5e-4 * sum(labels != ignore_label) / labels.size
-            outputs, train_loss = model.train(inputs=images, labels=labels, target_height=image_shape[0], target_width=image_shape[1], learning_rate=learning_rate, weight_decay=weight_decay)
+            balanced_weight_decay = weight_decay * sum(labels != ignore_label) / labels.size
+            outputs, train_loss = model.train(inputs=images, labels=labels, target_height=image_shape[0], target_width=image_shape[1], learning_rate=learning_rate, weight_decay=balanced_weight_decay)
             train_loss_total += train_loss
 
             predictions = np.argmax(outputs, axis=-1)
@@ -142,4 +143,5 @@ if __name__ == '__main__':
     tf.set_random_seed(0)
     np.random.seed(0)
 
-    train()
+    # train('resnet_50', pre_trained_model='./models/pretrained/resnet_50/resnet_v2_50.ckpt')
+    train('mobilenet_1.0', pre_trained_model='./models/pretrained/mobilenet_1.0_224/mobilenet_v2_1.0_224.ckpt')

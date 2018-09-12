@@ -3,13 +3,13 @@ import os
 from datetime import datetime
 
 import tensorflow as tf
+from feature_extractor import MobileNet, Resnet, Vgg16
 from modules import atrous_spatial_pyramid_pooling
-from feature_extractor import Vgg16, Resnet
 
 
 class DeepLab(object):
 
-    def __init__(self, is_training, num_classes, ignore_label=255, base_architecture='resnet_v2_101', batch_norm_momentum=0.9997, pre_trained_model=None, log_dir='./log'):
+    def __init__(self, base_architecture, is_training=True, num_classes=21, ignore_label=255, batch_norm_momentum=0.9997, pre_trained_model=None, log_dir='./log'):
 
         self.is_training = is_training
         self.is_training_bn = tf.placeholder(tf.bool, None, name='is_training_bn')
@@ -55,6 +55,9 @@ class DeepLab(object):
             elif base_architecture.startswith('resnet'):
                 n_layers = int(base_architecture.split('_')[-1])
                 features = Resnet(n_layers, self.inputs, self.weight_decay, self.batch_norm_momentum, self.is_training_bn)
+            elif base_architecture.startswith('mobilenet'):
+                depth_multiplier = float(base_architecture.split('_')[-1])
+                features = MobileNet(depth_multiplier, self.inputs, self.weight_decay, self.batch_norm_momentum, self.is_training_bn)
             else:
                 raise ValueError('Unknown backbone architecture!')
 
@@ -144,6 +147,6 @@ class DeepLab(object):
 
 if __name__ == '__main__':
 
-    deeplab = DeepLab(is_training=True, num_classes=10, base_architecture='resnet_v2_101', batch_norm_momentum=0.9997, pre_trained_model='./models/resnet_101/resnet_v2_101.ckpt')
+    deeplab = DeepLab('resnet_101', num_classes=10, batch_norm_momentum=0.9997, pre_trained_model='./models/resnet_101/resnet_v2_101.ckpt')
     print('Graph compile successful.')
     deeplab.close()

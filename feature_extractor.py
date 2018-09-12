@@ -1,5 +1,6 @@
 import tensorflow as tf
-from tensorflow.contrib.slim.nets import resnet_v2
+from nets import resnet_v2
+from nets.mobilenet import mobilenet_v2
 
 
 def Vgg16(imgs_in, weight_decay, batch_norm_momentum):
@@ -144,5 +145,12 @@ def Resnet(n_layers, imgs_in, weight_decay, batch_norm_momentum, is_training):
     network = getattr(resnet_v2, f'resnet_v2_{n_layers}')
     with tf.contrib.slim.arg_scope(resnet_v2.resnet_arg_scope(weight_decay=weight_decay, batch_norm_decay=batch_norm_momentum)):
         features, _ = network(imgs_in, is_training=is_training, global_pool=False, output_stride=16)
+
+    return features
+
+
+def MobileNet(depth_multiplier, imgs_in, weight_decay, batch_norm_momentum, is_training):
+    with tf.contrib.slim.arg_scope(mobilenet_v2.training_scope(is_training=is_training, weight_decay=weight_decay, bn_decay=batch_norm_momentum)):
+        features, _ = mobilenet_v2.mobilenet_base(imgs_in, depth_multiplier=depth_multiplier, output_stride=16)
 
     return features

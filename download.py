@@ -27,7 +27,7 @@ class TqdmUpTo(tqdm):
 
         if tsize is not None:
             self.total = tsize
-        self.update(b * bsize - self.n) # will also set self.n = b * bsize
+        self.update(b * bsize - self.n)  # will also set self.n = b * bsize
 
 
 def maybe_download(filename, url, destination_dir, expected_bytes=None, force=False):
@@ -87,29 +87,27 @@ def maybe_unzip(zip_filepath, destination_dir):
     print('Extraction complete!')
 
 
-def download_pre_trained_resnet(resnet='resnet_101', downloads_dir='./downloads', model_dir='./models'):
+def download_pre_trained_models(models, downloads_dir='./downloads', model_dir='./models/pretrained'):
     '''
-    Download ImageNet pre-trained ResNet
+    Download ImageNet pre-trained models
     https://github.com/tensorflow/models/tree/master/research/slim
     ResNet-50: [224, 224, 3]
     ResNet-101: [513, 513, 3]
     '''
-    resnet_50 = 'http://download.tensorflow.org/models/resnet_v2_50_2017_04_14.tar.gz'
-    resnet_101 = 'http://download.tensorflow.org/models/resnet_v2_101_2017_04_14.tar.gz'
 
-    if resnet == 'resnet_50':
-        url = resnet_50
-    elif resnet == 'resnet_101':
-        url = resnet_101
-    else:
-        raise Exception('Incorrect ResNet.')
+    url_dict = {
+        'resnet_50': 'http://download.tensorflow.org/models/resnet_v2_50_2017_04_14.tar.gz',
+        'resnet_101': 'http://download.tensorflow.org/models/resnet_v2_101_2017_04_14.tar.gz',
+        'mobilenet_1.0_224': 'https://storage.googleapis.com/mobilenet_v2/checkpoints/mobilenet_v2_1.0_224.tgz'
+    }
 
     if not os.path.exists(downloads_dir):
         os.makedirs(downloads_dir)
 
-    filepath = maybe_download(filename=url.split('/')[-1], url=url, destination_dir=downloads_dir, expected_bytes=None, force=False)
-
-    may_untar(tar_filepath=filepath, destination_dir=os.path.join(model_dir, resnet))
+    for model in models:
+        url = url_dict[model]
+        filepath = maybe_download(filename=url.split('/')[-1], url=url, destination_dir=downloads_dir, expected_bytes=None, force=False)
+        may_untar(tar_filepath=filepath, destination_dir=os.path.join(model_dir, model))
 
 
 if __name__ == '__main__':
@@ -117,5 +115,4 @@ if __name__ == '__main__':
     print('Downloading datasets ...')
     download_voc2012()
     print('Downloading pre-trained models ...')
-    download_pre_trained_resnet(resnet='resnet_101')
-    download_pre_trained_resnet(resnet='resnet_50')
+    download_pre_trained_models({'resnet_50', 'resnet_101', 'mobilenet_1.0_224'})
