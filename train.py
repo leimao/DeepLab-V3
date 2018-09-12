@@ -56,13 +56,13 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
 
     for i in range(num_epochs):
 
-        print('Epoch number: {}'.format(i))
+        print(f'Epoch number: {i}')
 
         print('Start validation ...')
 
         valid_loss_total = 0
-        num_pixel_labels_total = np.zeros(num_classes)
-        num_pixel_correct_predictions_total = np.zeros(num_classes)
+        num_pixels_union_total = np.zeros(num_classes)
+        num_pixels_intersection_total = np.zeros(num_classes)
 
         # Multi-scale inputs prediction
         for _ in trange(valid_iterator.dataset_size):
@@ -73,33 +73,18 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
             valid_loss_total += valid_loss
 
             prediction = np.argmax(output, axis=-1)
-            num_pixel_labels, num_pixel_correct_predictions = count_label_prediction_matches(labels=[np.squeeze(label, axis=-1)], predictions=[prediction], num_classes=num_classes, ignore_label=ignore_label)
+            num_pixels_union, num_pixels_intersection = count_label_prediction_matches(labels=[np.squeeze(label, axis=-1)], predictions=[prediction], num_classes=num_classes, ignore_label=ignore_label)
 
-            num_pixel_labels_total += num_pixel_labels
-            num_pixel_correct_predictions_total += num_pixel_correct_predictions
+            num_pixels_union_total += num_pixels_union
+            num_pixels_intersection_total += num_pixels_intersection
 
-            # validation_single_demo(image=image, label=np.squeeze(label, axis=-1), prediction=prediction, demo_dir=os.path.join(results_dir, 'validation_demo'), filename=str(j))
+            # validation_single_demo(image=image, label=np.squeeze(label, axis=-1), prediction=prediction, demo_dir=os.path.join(results_dir, 'validation_demo'), filename=str(_))
 
-        '''
-        for _ in trange(np.ceil(valid_iterator.dataset_size / minibatch_size).astype(int)):
-            images, labels = valid_iterator.next_minibatch()
-            outputs, valid_loss = model.validate(inputs=images, target_height=image_shape[0], target_width=image_shape[1], labels=labels)
-            valid_loss_total += valid_loss
-
-            predictions = np.argmax(outputs, axis=-1)
-            num_pixel_labels, num_pixel_correct_predictions = count_label_prediction_matches(labels=np.squeeze(labels, axis=-1), predictions=predictions, num_classes=num_classes, ignore_label=ignore_label)
-
-            num_pixel_labels_total += num_pixel_labels
-            num_pixel_correct_predictions_total += num_pixel_correct_predictions
-
-            validation_demo(images=images, labels=np.squeeze(labels, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'validation_demo'))
-        '''
-
-        mean_IOU = mean_intersection_over_union(num_pixel_labels=num_pixel_labels_total, num_pixel_correct_predictions=num_pixel_correct_predictions_total)
+        mean_IOU = mean_intersection_over_union(num_pixels_union=num_pixels_union_total, num_pixels_intersection=num_pixels_intersection_total)
 
         valid_loss_ave = valid_loss_total / valid_iterator.dataset_size
 
-        print('Validation loss: {:.4f} | mIoU: {:.4f}'.format(valid_loss_ave, mean_IOU))
+        print(f'Validation loss: {valid_loss_ave:.4f} | mIoU: {mean_IOU:.4f}')
 
         if mean_IOU > best_mIoU:
             best_mIoU = mean_IOU
@@ -109,10 +94,9 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
 
         print('Start training ...')
 
-        debug_mode = False
         train_loss_total = 0
-        num_pixel_labels_total = np.zeros(num_classes)
-        num_pixel_correct_predictions_total = np.zeros(num_classes)
+        num_pixels_union_total = np.zeros(num_classes)
+        num_pixels_intersection_total = np.zeros(num_classes)
 
         for _ in trange(np.ceil(train_iterator.dataset_size / minibatch_size).astype(int)):
             images, labels = train_iterator.next_minibatch()
@@ -121,19 +105,18 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
             train_loss_total += train_loss
 
             predictions = np.argmax(outputs, axis=-1)
-            num_pixel_labels, num_pixel_correct_predictions = count_label_prediction_matches(labels=np.squeeze(labels, axis=-1), predictions=predictions, num_classes=num_classes, ignore_label=ignore_label)
+            num_pixels_union, num_pixels_intersection = count_label_prediction_matches(labels=np.squeeze(labels, axis=-1), predictions=predictions, num_classes=num_classes, ignore_label=ignore_label)
 
-            num_pixel_labels_total += num_pixel_labels
-            num_pixel_correct_predictions_total += num_pixel_correct_predictions
+            num_pixels_union_total += num_pixels_union
+            num_pixels_intersection_total += num_pixels_intersection
 
-            if debug_mode:
-                validation_demo(images=images, labels=np.squeeze(labels, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'training_demo'))
+            # validation_demo(images=images, labels=np.squeeze(labels, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'training_demo'), batch_no=_)
 
         train_iterator.shuffle_dataset()
 
-        mIoU = mean_intersection_over_union(num_pixel_labels=num_pixel_labels_total, num_pixel_correct_predictions=num_pixel_correct_predictions_total)
+        mIoU = mean_intersection_over_union(num_pixels_union=num_pixels_union_total, num_pixels_intersection=num_pixels_intersection_total)
         train_loss_ave = train_loss_total / train_iterator.dataset_size
-        print('Training loss: {:.4f} | mIoU: {:.4f}'.format(train_loss_ave, mIoU))
+        print(f'Training loss: {train_loss_ave:.4f} | mIoU: {mIoU:.4f}')
 
     model.close()
 

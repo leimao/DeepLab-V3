@@ -241,32 +241,6 @@ def random_crop(image, label, output_size):
     return image_cropped, label_cropped
 
 
-'''
-def image_augmentaion(image, label, output_size, scale_factor = 1.5):
-
-    original_height = image.shape[0]
-    original_width = image.shape[1]
-    target_height = output_size[0]
-    target_width = output_size[1]
-
-    image_augmented = image.copy()
-    label_augmented = label.copy()
-
-    if original_height >= int(scale_factor * target_height) and original_width >= int(scale_factor * target_width):
-        image_augmented, label_augmented = random_crop(image=image_augmented, label=label_augmented, output_size=output_size)
-    else:
-        rescaled_size = [np.random.randint(target_height, int(scale_factor * target_height)), np.random.randint(target_width, int(scale_factor * target_width))]
-        image_augmented, label_augmented = resize_image_and_label(image = image_augmented, label = label_augmented, output_size = rescaled_size)
-        image_augmented, label_augmented = random_crop(image = image_augmented, label = label_augmented, output_size = output_size)
-
-    # Flip image and label
-    if np.random.random() > 0.5:
-        image_augmented, label_augmented = flip_image_and_label(image = image_augmented, label = label_augmented)
-
-    return image_augmented, label_augmented
-'''
-
-
 def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale_factor=2.0):
 
     original_height = image.shape[0]
@@ -431,7 +405,7 @@ Evaluation
 '''
 
 
-def validation_demo(images, labels, predictions, demo_dir):
+def validation_demo(images, labels, predictions, demo_dir, batch_no):
 
     assert images.ndim == 4 and labels.ndim == 3 and predictions.ndim == 3
 
@@ -439,9 +413,9 @@ def validation_demo(images, labels, predictions, demo_dir):
         os.makedirs(demo_dir)
 
     for i in range(len(images)):
-        cv2.imwrite(os.path.join(demo_dir, 'image_{}.jpg'.format(i)), images[i])
-        save_annotation(label=labels[i], filename=os.path.join(demo_dir, 'image_{}_label.png'.format(i)), add_colormap=True)
-        save_annotation(label=predictions[i], filename=os.path.join(demo_dir, 'image_{}_prediction.png'.format(i)), add_colormap=True)
+        cv2.imwrite(os.path.join(demo_dir, f'image_{batch_no}_{i}.jpg'), images[i])
+        save_annotation(label=labels[i], filename=os.path.join(demo_dir, f'image_{batch_no}_{i}_label.png'), add_colormap=True)
+        save_annotation(label=predictions[i], filename=os.path.join(demo_dir, f'image_{batch_no}_{i}_prediction.png'), add_colormap=True)
 
 
 def validation_single_demo(image, label, prediction, demo_dir, filename):
@@ -449,34 +423,9 @@ def validation_single_demo(image, label, prediction, demo_dir, filename):
     if not os.path.exists(demo_dir):
         os.makedirs(demo_dir)
 
-    cv2.imwrite(os.path.join(demo_dir, 'image_{}.jpg'.format(filename)), image)
-    save_annotation(label=label, filename=os.path.join(demo_dir, 'image_{}_label.png'.format(filename)), add_colormap=True)
-    save_annotation(label=prediction, filename=os.path.join(demo_dir, 'image_{}_prediction.png'.format(filename)), add_colormap=True)
-
-
-"""
-def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):
-
-    # Pixel intersection-over-union averaged across number of classes.
-    # Assuming valid labels are from 0 to num_classes - 1.
-
-
-    assert labels.ndim == 3 and labels.shape == predictions.shape
-
-    num_pixel_labels = np.zeros(num_classes)
-    num_pixel_correct_predictions = np.zeros(num_classes)
-
-    not_ignore_mask = np.not_equal(labels, ignore_label).astype(np.int)
-    matched_pixels = (labels == predictions) * not_ignore_mask
-
-    for i in range(num_classes):
-
-        class_mask = (labels == i)
-        num_pixel_labels[i] += np.sum(class_mask)
-        num_pixel_correct_predictions[i] += np.sum(matched_pixels * class_mask)
-
-    return num_pixel_labels, num_pixel_correct_predictions
-"""
+    cv2.imwrite(os.path.join(demo_dir, f'image_{filename}.jpg'), image)
+    save_annotation(label=label, filename=os.path.join(demo_dir, f'image_{filename}_label.png'), add_colormap=True)
+    save_annotation(label=prediction, filename=os.path.join(demo_dir, f'image_{filename}_prediction.png'), add_colormap=True)
 
 
 def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):
@@ -485,26 +434,25 @@ def count_label_prediction_matches(labels, predictions, num_classes, ignore_labe
     Assuming valid labels are from 0 to num_classes - 1.
     Support list shaped labels and predictions.
     '''
-    num_pixel_labels = np.zeros(num_classes)
-    num_pixel_correct_predictions = np.zeros(num_classes)
+    num_pixels_union = np.zeros(num_classes)
+    num_pixels_intersection = np.zeros(num_classes)
 
-    for label, prediction in zip(labels, predictions):
-        assert label.shape == prediction.shape
+    assert labels.shape == predictions.shape
 
-        for i in range(num_classes):
-            label_class_mask = label == i
-            prediction_class_mask = prediction == i
-            # num_pixel_labels[i] += np.sum(label_class_mask)
-            num_pixel_labels[i] += np.sum(label_class_mask | prediction_class_mask)
-            num_pixel_correct_predictions[i] += np.sum(label_class_mask & prediction_class_mask)
+    for i in range(num_classes):
+        label_class_mask = labels == i
+        prediction_class_mask = predictions == i
+        # num_pixels_union[i] += np.sum(label_class_mask)
+        num_pixels_union[i] = np.sum(label_class_mask | prediction_class_mask)
+        num_pixels_intersection[i] = np.sum(label_class_mask & prediction_class_mask)
 
-    return num_pixel_labels, num_pixel_correct_predictions
+    return num_pixels_union, num_pixels_intersection
 
 
-def mean_intersection_over_union(num_pixel_labels, num_pixel_correct_predictions):
+def mean_intersection_over_union(num_pixels_union, num_pixels_intersection):
 
-    valid_classes = num_pixel_labels > 0
-    mean_iou = np.mean(num_pixel_correct_predictions[valid_classes] / num_pixel_labels[valid_classes])
+    valid_classes = num_pixels_union > 0
+    mean_iou = np.mean(num_pixels_intersection[valid_classes] / num_pixels_union[valid_classes])
 
     return mean_iou
 
@@ -555,55 +503,10 @@ def multiscale_single_validate(image, label, input_scales, validator):
 
 
 '''
-def mean_intersection_over_union(labels, predictions, ignore_label):
-    # Wrong implementation
-
-
-    not_ignore_mask = np.not_equal(labels, ignore_label).astype(np.int)
-    num_valid_labels = np.sum(not_ignore_mask)
-    num_matched_labels = np.sum((labels == predictions) * not_ignore_mask)
-
-    mIOU = num_matched_labels / num_valid_labels
-
-    return num_matched_labels, num_valid_labels, mIOU
-'''
-
-
-'''
-
 def learning_rate_policy(iteration, max_iteration, power = 0.9):
 
     return (1 - iteration / max_iteration) ** power
-
-
-
-def multiscale_test(image, scales, predictor):
-
-
-
-
-
-
-
-
-
-def multiscale_test(image, scales, predictor, input_shape):
-
-    # Predict image semantic segmentation labeling using multi-scale inputs.
-    # images: numpy array, [height, width, channel], channel = 3.
-    # scales: list of scale factors. e.g., [0.5, 1.0, 1.5].
-    # predictor: prediction function which takes one scaled image as input and outputs its semantic segmentation labelings.
-    # input_shape: the input shape of image to the predictor function.
-
-
-    assert image.ndim == 3 and image.shape[2] == 3, 'Incorrect input image dimensions.'
-    assert len(scales) >= 1, 'At least one scale factor has to be provided for the image.'
-
-
-    images_scaled =
-
 '''
-
 
 if __name__ == '__main__':
 
@@ -613,7 +516,7 @@ if __name__ == '__main__':
     print(train_dataset.image_filenames)
     print(train_dataset.size)
 
-    channel_means = save_load_means(means_filename='./models/channel_means.npz', image_filenames=train_dataset.image_filenames, recalculate=False)
+    channel_means = save_load_means(means_filename='./channel_means.npz', image_filenames=train_dataset.image_filenames, recalculate=False)
     print(channel_means)
 
     voc2012_preprocessor = DataPreprocessor(channel_means=channel_means, output_size=[513, 513], max_scale_factor=1.5)
@@ -630,22 +533,3 @@ if __name__ == '__main__':
     time_end = time.time()
     time_elapsed = time_end - time_start
     print("Time Elapsed: %02d:%02d:%02d" % (time_elapsed // 3600, (time_elapsed % 3600 // 60), (time_elapsed % 60 // 1)))
-
-    '''
-    images, labels = train_iterator.next_minibatch()
-
-    print(images.dtype, labels.dtype)
-
-    for i, (image, label) in enumerate(zip(images, labels)):
-        image = add_channel_means(image = image, channel_means = channel_means)
-        print(type(image), image.shape)
-        print(type(label), label.shape)
-        label = np.squeeze(label, axis = -1)
-        print(type(label), label.shape)
-        save_annotation(label = label, filename = str(i) + '.png', add_colormap = True)
-        # label = Image.fromarray(image.astype(np.uint8))
-        # label.save(str(i) + '.png')
-
-
-        cv2.imwrite(str(i) + '.jpg', image)
-    '''

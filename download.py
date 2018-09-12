@@ -73,7 +73,7 @@ def download_voc2012(downloads_dir='./downloads', data_dir='./data'):
 
 def may_untar(tar_filepath, destination_dir):
 
-    print('Extracting tar file {} ...'.format(os.path.split(tar_filepath)[-1]))
+    print(f'Extracting tar file {os.path.split(tar_filepath)[-1]} ...')
     with tarfile.open(name=tar_filepath, mode='r') as tar:
         tar.extractall(path=destination_dir)
     print('Extraction complete!')
@@ -81,7 +81,7 @@ def may_untar(tar_filepath, destination_dir):
 
 def maybe_unzip(zip_filepath, destination_dir):
 
-    print('Extracting zip file: {} ...'.format(os.path.split(zip_filepath)[-1]))
+    print(f'Extracting zip file: {os.path.split(zip_filepath)[-1]} ...')
     with zipfile.ZipFile(zip_filepath) as zf:
         zf.extractall(destination_dir)
     print('Extraction complete!')
