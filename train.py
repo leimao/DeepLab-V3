@@ -42,7 +42,7 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
     valid_dataset = Dataset(dataset_filename=valid_dataset_filename, images_dir=images_dir, labels_dir=labels_dir, image_extension='.jpg', label_extension='.png')
 
     # Calculate image channel means
-    channel_means = save_load_means(means_filename='./models/channel_means.npz', image_filenames=train_dataset.image_filenames, recalculate=False)
+    channel_means = save_load_means(means_filename='./channel_means.npz', image_filenames=train_dataset.image_filenames, recalculate=False)
 
     voc2012_preprocessor = DataPreprocessor(channel_means=channel_means, output_size=image_shape, min_scale_factor=0.5, max_scale_factor=2.0)
 
@@ -126,5 +126,6 @@ if __name__ == '__main__':
     tf.set_random_seed(0)
     np.random.seed(0)
 
-    # train('resnet_50', pre_trained_model='./models/pretrained/resnet_50/resnet_v2_50.ckpt')
-    train('mobilenet_1.0', pre_trained_model='./models/pretrained/mobilenet_1.0_224/mobilenet_v2_1.0_224.ckpt')
+    train('resnet_101', pre_trained_model='./models/pretrained/resnet_101/resnet_v2_101.ckpt')
+    # train('mobilenet_1.0', pre_trained_model='./models/pretrained/mobilenet_1.0_224/mobilenet_v2_1.0_224.ckpt')
+    # train('mobilenet_0.35')

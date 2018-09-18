@@ -151,6 +151,6 @@ def Resnet(n_layers, imgs_in, weight_decay, batch_norm_momentum, is_training):
 
 def MobileNet(depth_multiplier, imgs_in, weight_decay, batch_norm_momentum, is_training):
     with tf.contrib.slim.arg_scope(mobilenet_v2.training_scope(is_training=is_training, weight_decay=weight_decay, bn_decay=batch_norm_momentum)):
-        features, _ = mobilenet_v2.mobilenet_base(imgs_in, depth_multiplier=depth_multiplier, output_stride=16)
+        features, _ = mobilenet_v2.mobilenet_base(imgs_in, depth_multiplier=depth_multiplier, finegrain_classification_mode=depth_multiplier < 1, output_stride=16)
 
     return features

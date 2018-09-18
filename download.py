@@ -34,7 +34,7 @@ def maybe_download(filename, url, destination_dir, expected_bytes=None, force=Fa
 
     filepath = os.path.join(destination_dir, filename)
 
-    if force or not os.path.exists(filepath):
+    if not os.path.exists(filepath) or force:
         if not os.path.exists(destination_dir):
             os.makedirs(destination_dir)
 

@@ -437,6 +437,8 @@ def count_label_prediction_matches(labels, predictions, num_classes, ignore_labe
     num_pixels_union = np.zeros(num_classes)
     num_pixels_intersection = np.zeros(num_classes)
 
+    labels = np.asarray(labels)
+    predictions = np.asarray(predictions)
     assert labels.shape == predictions.shape
 
     for i in range(num_classes):

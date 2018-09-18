@@ -12,17 +12,17 @@ if __name__ == '__main__':
     images_dir = './data/VOCdevkit/VOC2012/JPEGImages'
     labels_dir = './data/VOCdevkit/VOC2012/SegmentationClass'
     results_dir = './results'
-    model_dir = './models/voc2012'
-    model_filename = '0.5663_deeplab.ckpt'
+    model_dir = './models/deeplab/mobilenet_1.0_voc2012'
+    model_filename = 'mobilenet_1.0_0.5728.ckpt'
 
-    channel_means = save_load_means(means_filename='./models/channel_means.npz', image_filenames=None)
+    channel_means = save_load_means(means_filename='./channel_means.npz', image_filenames=None)
 
     minibatch_size = 16
 
     test_dataset = Dataset(dataset_filename=test_dataset_filename, images_dir=images_dir, labels_dir=labels_dir, image_extension='.jpg', label_extension='.png')
     test_iterator = Iterator(dataset=test_dataset, minibatch_size=minibatch_size, process_func=None, random_seed=None, scramble=False, num_jobs=1)
 
-    deep_lab = DeepLab(False, 21)
+    deep_lab = DeepLab('mobilenet_1.0', is_training=False)
     deep_lab.load(osp.join(model_dir, model_filename))
 
     n_samples = 8
