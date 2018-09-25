@@ -71,7 +71,6 @@ def download_voc2012(downloads_dir='./downloads', data_dir='./data'):
     may_untar(tar_filepath=filepath, destination_dir=data_dir)
 
 
-
 def download_sbd(downloads_dir='./downloads', data_dir='./data/SBD'):
     '''
     http://home.bharathh.info/pubs/codes/SBD/download.html
@@ -79,19 +78,16 @@ def download_sbd(downloads_dir='./downloads', data_dir='./data/SBD'):
 
     url = 'http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz'
 
-    train_noval_dataset_url = 'http://home.bharathh.info/pubs/codes/SBD/train_noval.txt'
+    train_noval_url = 'http://home.bharathh.info/pubs/codes/SBD/train_noval.txt'
 
     if not os.path.exists(downloads_dir):
         os.makedirs(downloads_dir)
 
     filepath = maybe_download(filename=url.split('/')[-1], url=url, destination_dir=downloads_dir, expected_bytes=None, force=False)
 
-    train_noval_filepath = maybe_download(filename=train_noval_dataset_url.split('/')[-1], url=train_noval_dataset_url, destination_dir=data_dir, expected_bytes=None, force=False)
+    maybe_download(filename=train_noval_url.split('/')[-1], url=train_noval_url, destination_dir=data_dir, expected_bytes=None, force=False)
 
     may_untar(tar_filepath=filepath, destination_dir=data_dir)
-
-
-
 
 
 def may_untar(tar_filepath, destination_dir):
@@ -110,7 +106,7 @@ def maybe_unzip(zip_filepath, destination_dir):
     print('Extraction complete!')
 
 
-def download_pre_trained_models(models, downloads_dir='./downloads', model_dir='./models/pretrained'):
+def download_pretrained_models(models, downloads_dir='./downloads', model_dir='./models/pretrained'):
     '''
     Download ImageNet pre-trained models
     https://github.com/tensorflow/models/tree/master/research/slim
@@ -118,7 +114,7 @@ def download_pre_trained_models(models, downloads_dir='./downloads', model_dir='
     ResNet-101: [513, 513, 3]
     '''
 
-    url_dict = {
+    urls = {
         'resnet_50': 'http://download.tensorflow.org/models/resnet_v2_50_2017_04_14.tar.gz',
         'resnet_101': 'http://download.tensorflow.org/models/resnet_v2_101_2017_04_14.tar.gz',
         'mobilenet_1.0_224': 'https://storage.googleapis.com/mobilenet_v2/checkpoints/mobilenet_v2_1.0_224.tgz'
@@ -128,14 +124,9 @@ def download_pre_trained_models(models, downloads_dir='./downloads', model_dir='
         os.makedirs(downloads_dir)
 
     for model in models:
-        url = url_dict[model]
+        url = urls[model]
         filepath = maybe_download(filename=url.split('/')[-1], url=url, destination_dir=downloads_dir, expected_bytes=None, force=False)
         may_untar(tar_filepath=filepath, destination_dir=os.path.join(model_dir, model))
-
-
-
-
-
 
 
 if __name__ == '__main__':
@@ -144,4 +135,4 @@ if __name__ == '__main__':
     download_voc2012()
     download_sbd()
     print('Downloading pre-trained models ...')
-    download_pre_trained_models({'resnet_50', 'resnet_101', 'mobilenet_1.0_224'})
+    download_pretrained_models({'resnet_50', 'resnet_101', 'mobilenet_1.0_224'})

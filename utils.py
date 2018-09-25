@@ -6,10 +6,10 @@ import numpy as np
 from tqdm import tqdm
 
 import cv2
+import scipy.io
 from joblib import Parallel, delayed
 from PIL import Image
 
-import scipy.io
 
 def image_channel_means(image_filenames):
     '''
@@ -180,9 +180,13 @@ def read_image(image_filename):
 
 def read_label(label_filename):
 
-    # Magic function to read VOC2012 semantic labels
-    # https://github.com/tensorflow/models/blob/master/research/deeplab/datasets/remove_gt_colormap.py#L42
-    label = np.asarray(Image.open(label_filename))
+    if label_filename.endswith('.mat'):
+        # http://home.bharathh.info/pubs/codes/SBD/download.html
+        mat = scipy.io.loadmat(label_filename)
+        label = mat['GTcls']['Segmentation'][0][0]
+    else:
+        # Magic function to read VOC2012 semantic labelshttps://github.com/tensorflow/models/blob/master/research/deeplab/datasets/remove_gt_colormap.py#L42
+        label = np.asarray(Image.open(label_filename))
 
     return label
 
@@ -293,16 +297,6 @@ def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale
     return image_augmented, label_augmented
 
 
-
-def read_annotation_from_mat_file(annotation_filename):
-    '''
-    http://home.bharathh.info/pubs/codes/SBD/download.html
-    '''
-    mat = scipy.io.loadmat(annotation_filename)
-    img = mat['GTcls']['Segmentation'][0][0]
-    return img
-
-
 class DataPreprocessor(object):
 
     def __init__(self, channel_means, output_size=[513, 513], min_scale_factor=0.5, max_scale_factor=2.0):
@@ -315,10 +309,7 @@ class DataPreprocessor(object):
     def preprocess(self, image_filename, label_filename):
         # Read data from file
         image = read_image(image_filename=image_filename)
-        if label_filename.endswith('.mat'):
-            label = read_annotation_from_mat_file(annotation_filename=label_filename)
-        else:
-            label = read_label(label_filename=label_filename)
+        label = read_label(label_filename=label_filename)
 
         # Image normalization
         image = subtract_channel_means(image=image, channel_means=self.channel_means)
@@ -328,17 +319,6 @@ class DataPreprocessor(object):
         return image, label
 
 
-
-
-
-
-
-
-
-
-
-
-##################################################################################################################################
 '''
 The following image annotition saving codes in the block are slightly modified from Google's official DeepLab repository.
 https://github.com/tensorflow/models/blob/master/research/deeplab/utils/get_dataset_colormap.py
@@ -422,7 +402,6 @@ def save_annotation(label, filename, add_colormap=True):
     image.save(filename)
 
 
-##################################################################################################################################
 '''
 Evaluation
 '''
@@ -467,7 +446,6 @@ def count_label_prediction_matches(labels, predictions, num_classes, ignore_labe
     for i in range(num_classes):
         label_class_mask = labels == i
         prediction_class_mask = predictions == i
-        # num_pixels_union[i] += np.sum(label_class_mask)
         num_pixels_union[i] = np.sum(label_class_mask | prediction_class_mask)
         num_pixels_intersection[i] = np.sum(label_class_mask & prediction_class_mask)
 

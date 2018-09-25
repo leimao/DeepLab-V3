@@ -3,17 +3,15 @@ import os
 from datetime import datetime
 
 import tensorflow as tf
-#from feature_extractor import MobileNet, Resnet, Vgg16
-from feature_extractor import Resnet, Vgg16
+from feature_extractor import MobileNet, Resnet, Vgg16
 from modules import atrous_spatial_pyramid_pooling
 
 
 class DeepLab(object):
 
-    def __init__(self, base_architecture, is_training=True, num_classes=21, ignore_label=255, batch_norm_momentum=0.9997, pre_trained_model=None, log_dir='./log'):
+    def __init__(self, base_architecture, training=True, num_classes=21, ignore_label=255, batch_norm_momentum=0.9997, pre_trained_model=None, log_dir='./log'):
 
-        self.is_training = is_training
-        self.is_training_bn = tf.placeholder(tf.bool, None, name='is_training_bn')
+        self.is_training = tf.placeholder(tf.bool, None, name='is_training')
         self.num_classes = num_classes
         self.ignore_label = ignore_label
         self.inputs_shape = [None, None, None, 3]
@@ -42,7 +40,7 @@ class DeepLab(object):
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
 
-        if self.is_training:
+        if training:
             self.train_step = 0
             now = datetime.now()
             self.log_dir = os.path.join(log_dir, now.strftime('%Y%m%d-%H%M%S'))
@@ -50,17 +48,16 @@ class DeepLab(object):
             self.train_summaries, self.valid_summaries = self.summary()
 
     def backbone_initializer(self, base_architecture):
+
         with tf.variable_scope('backbone'):
             if base_architecture == 'vgg16':
                 features = Vgg16(self.inputs, self.weight_decay, self.batch_norm_momentum)
             elif base_architecture.startswith('resnet'):
                 n_layers = int(base_architecture.split('_')[-1])
-                features = Resnet(n_layers, self.inputs, self.weight_decay, self.batch_norm_momentum, self.is_training_bn)
-
-            #elif base_architecture.startswith('mobilenet'):
-            #    depth_multiplier = float(base_architecture.split('_')[-1])
-            #    features = MobileNet(depth_multiplier, self.inputs, self.weight_decay, self.batch_norm_momentum, self.is_training_bn)
-
+                features = Resnet(n_layers, self.inputs, self.weight_decay, self.batch_norm_momentum, self.is_training)
+            elif base_architecture.startswith('mobilenet'):
+                depth_multiplier = float(base_architecture.split('_')[-1])
+                features = MobileNet(depth_multiplier, self.inputs, self.weight_decay, self.batch_norm_momentum, self.is_training)
             else:
                 raise ValueError('Unknown backbone architecture!')
 
@@ -68,10 +65,9 @@ class DeepLab(object):
 
     def model_initializer(self):
 
-        with tf.name_scope('encoder'):
-            pools = atrous_spatial_pyramid_pooling(inputs=self.feature_map, filters=256, regularizer=self.regularizer)
-            logits = tf.layers.conv2d(inputs=pools, filters=self.num_classes, kernel_size=(1, 1), name='logits')
-            outputs = tf.image.resize_bilinear(images=logits, size=(self.target_height, self.target_width), name='resized_outputs')
+        pools = atrous_spatial_pyramid_pooling(inputs=self.feature_map, filters=256, regularizer=self.regularizer)
+        logits = tf.layers.conv2d(inputs=pools, filters=self.num_classes, kernel_size=(1, 1), name='logits')
+        outputs = tf.image.resize_bilinear(images=logits, size=(self.target_height, self.target_width), name='resized_outputs')
 
         return outputs
 
@@ -104,7 +100,7 @@ class DeepLab(object):
 
     def train(self, inputs, labels, target_height, target_width, learning_rate, weight_decay):
 
-        _, outputs, train_loss, summaries = self.sess.run([self.optimizer, self.outputs, self.loss, self.train_summaries], feed_dict={self.inputs: inputs, self.labels: labels, self.learning_rate: learning_rate, self.target_height: target_height, self.target_width: target_width, self.weight_decay: weight_decay, self.is_training_bn: True})
+        _, outputs, train_loss, summaries = self.sess.run([self.optimizer, self.outputs, self.loss, self.train_summaries], feed_dict={self.inputs: inputs, self.labels: labels, self.learning_rate: learning_rate, self.target_height: target_height, self.target_width: target_width, self.weight_decay: weight_decay, self.is_training: True})
 
         self.writer.add_summary(summaries, self.train_step)
         self.train_step += 1
@@ -113,7 +109,7 @@ class DeepLab(object):
 
     def validate(self, inputs, labels, target_height, target_width):
 
-        outputs, valid_loss, summaries = self.sess.run([self.outputs, self.loss, self.valid_summaries], feed_dict={self.inputs: inputs, self.labels: labels, self.target_height: target_height, self.target_width: target_width, self.is_training_bn: False})
+        outputs, valid_loss, summaries = self.sess.run([self.outputs, self.loss, self.valid_summaries], feed_dict={self.inputs: inputs, self.labels: labels, self.target_height: target_height, self.target_width: target_width, self.is_training: False})
 
         self.writer.add_summary(summaries, self.train_step)
 
@@ -121,7 +117,7 @@ class DeepLab(object):
 
     def test(self, inputs, target_height, target_width):
 
-        outputs = self.sess.run(self.outputs, feed_dict={self.inputs: inputs, self.target_height: target_height, self.target_width: target_width, self.is_training_bn: False})
+        outputs = self.sess.run(self.outputs, feed_dict={self.inputs: inputs, self.target_height: target_height, self.target_width: target_width, self.is_training: False})
 
         return outputs
 
@@ -138,11 +134,13 @@ class DeepLab(object):
         self.saver.restore(self.sess, filepath)
 
     def initialize_backbone_from_pretrained_weights(self, path_to_pretrained_weights):
+
         variables_to_restore = tf.contrib.slim.get_variables_to_restore(exclude=['global_step'])
         valid_prefix = 'backbone/'
         tf.train.init_from_checkpoint(path_to_pretrained_weights, {v.name[len(valid_prefix):].split(':')[0]: v for v in variables_to_restore if v.name.startswith(valid_prefix)})
 
     def close(self):
+
         self.writer.close()
         self.sess.close()
 
