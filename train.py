@@ -154,7 +154,7 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
 
         mIoU = mean_intersection_over_union(num_pixels_union=num_pixels_union_total, num_pixels_intersection=num_pixels_intersection_total)
         train_loss_ave = train_loss_total / train_iterator.dataset_size
-        print('Training loss: {:.4f} | mIoU: {:.4f}').format(train_loss_ave, mIoU)
+        print('Training loss: {:.4f} | mIoU: {:.4f}'.format(train_loss_ave, mIoU))
 
     model.close()
 
