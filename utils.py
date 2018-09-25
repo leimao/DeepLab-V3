@@ -9,6 +9,7 @@ import cv2
 from joblib import Parallel, delayed
 from PIL import Image
 
+import scipy.io
 
 def image_channel_means(image_filenames):
     '''
@@ -292,6 +293,16 @@ def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale
     return image_augmented, label_augmented
 
 
+
+def read_annotation_from_mat_file(annotation_filename):
+    '''
+    http://home.bharathh.info/pubs/codes/SBD/download.html
+    '''
+    mat = scipy.io.loadmat(annotation_filename)
+    img = mat['GTcls']['Segmentation'][0][0]
+    return img
+
+
 class DataPreprocessor(object):
 
     def __init__(self, channel_means, output_size=[513, 513], min_scale_factor=0.5, max_scale_factor=2.0):
@@ -304,7 +315,10 @@ class DataPreprocessor(object):
     def preprocess(self, image_filename, label_filename):
         # Read data from file
         image = read_image(image_filename=image_filename)
-        label = read_label(label_filename=label_filename)
+        if label_filename.endswith('.mat'):
+            label = read_annotation_from_mat_file(annotation_filename=label_filename)
+        else:
+            label = read_label(label_filename=label_filename)
 
         # Image normalization
         image = subtract_channel_means(image=image, channel_means=self.channel_means)
@@ -312,6 +326,15 @@ class DataPreprocessor(object):
         image, label = image_augmentaion(image=image, label=label, output_size=self.output_size, min_scale_factor=self.min_scale_factor, max_scale_factor=self.max_scale_factor)
 
         return image, label
+
+
+
+
+
+
+
+
+
 
 
 
@@ -413,9 +436,9 @@ def validation_demo(images, labels, predictions, demo_dir, batch_no):
         os.makedirs(demo_dir)
 
     for i in range(len(images)):
-        cv2.imwrite(os.path.join(demo_dir, f'image_{batch_no}_{i}.jpg'), images[i])
-        save_annotation(label=labels[i], filename=os.path.join(demo_dir, f'image_{batch_no}_{i}_label.png'), add_colormap=True)
-        save_annotation(label=predictions[i], filename=os.path.join(demo_dir, f'image_{batch_no}_{i}_prediction.png'), add_colormap=True)
+        cv2.imwrite(os.path.join(demo_dir, 'image_{}_{}.jpg'.format(batch_no, i)), images[i])
+        save_annotation(label=labels[i], filename=os.path.join(demo_dir, 'image_{}_{}_label.png'.format(batch_no, i)), add_colormap=True)
+        save_annotation(label=predictions[i], filename=os.path.join(demo_dir, 'image_{}_{}_prediction.png'.format(batch_no, i)), add_colormap=True)
 
 
 def validation_single_demo(image, label, prediction, demo_dir, filename):
@@ -423,9 +446,9 @@ def validation_single_demo(image, label, prediction, demo_dir, filename):
     if not os.path.exists(demo_dir):
         os.makedirs(demo_dir)
 
-    cv2.imwrite(os.path.join(demo_dir, f'image_{filename}.jpg'), image)
-    save_annotation(label=label, filename=os.path.join(demo_dir, f'image_{filename}_label.png'), add_colormap=True)
-    save_annotation(label=prediction, filename=os.path.join(demo_dir, f'image_{filename}_prediction.png'), add_colormap=True)
+    cv2.imwrite(os.path.join(demo_dir, 'image_{}.jpg'.format(filename)), image)
+    save_annotation(label=label, filename=os.path.join(demo_dir, 'image_{}_label.png'.format(filename)), add_colormap=True)
+    save_annotation(label=prediction, filename=os.path.join(demo_dir, 'image_{}_prediction.png'.format(filename)), add_colormap=True)
 
 
 def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):

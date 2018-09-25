@@ -16,7 +16,7 @@ from utils import (DataPreprocessor, Dataset, Iterator,
 def train(network_backbone, pre_trained_model=None, train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', valid_dataset_filename='./data/VOCdevkit/VOC2012/valid_dataset.txt', images_dir='./data/VOCdevkit/VOC2012/JPEGImages', labels_dir='./data/VOCdevkit/VOC2012/SegmentationClass', model_dir=None, results_dir='./results', log_dir='./log'):
 
     if not model_dir:
-        model_dir = f'./models/deeplab/{network_backbone}_voc2012'
+        model_dir = './models/deeplab/{}_voc2012'.format(network_backbone)
     num_classes = 21
     ignore_label = 255
     num_epochs = 1000
@@ -26,6 +26,10 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
     weight_decay = 5e-4
     batch_norm_decay = 0.99
     image_shape = [513, 513]
+
+    train_augmented_dataset = './data/SBD/train_noval.txt'
+    images_augmented_dir = './data/SBD/benchmark_RELEASE/dataset/img'
+    labels_augmented_dir = './data/SBD/benchmark_RELEASE/dataset/cls'
 
     # validation_scales = [0.5, 1, 1.5]
     validation_scales = [1]
@@ -41,6 +45,8 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
     train_dataset = Dataset(dataset_filename=train_dataset_filename, images_dir=images_dir, labels_dir=labels_dir, image_extension='.jpg', label_extension='.png')
     valid_dataset = Dataset(dataset_filename=valid_dataset_filename, images_dir=images_dir, labels_dir=labels_dir, image_extension='.jpg', label_extension='.png')
 
+
+
     # Calculate image channel means
     channel_means = save_load_means(means_filename='./channel_means.npz', image_filenames=train_dataset.image_filenames, recalculate=False)
 
@@ -50,13 +56,24 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
     train_iterator = Iterator(dataset=train_dataset, minibatch_size=minibatch_size, process_func=voc2012_preprocessor.preprocess, random_seed=random_seed, scramble=True, num_jobs=1)
     valid_iterator = Iterator(dataset=valid_dataset, minibatch_size=minibatch_size, process_func=voc2012_preprocessor.preprocess, random_seed=None, scramble=False, num_jobs=1)
 
+
+
+    # Prepare augmented dataset
+    train_augmented_dataset = Dataset(dataset_filename=train_augmented_dataset, images_dir=images_augmented_dir, labels_dir=labels_augmented_dir, image_extension='.jpg', label_extension='.mat')
+
+    channel_augmented_means = save_load_means(means_filename='./channel_augmented_means.npz', image_filenames=train_augmented_dataset.image_filenames, recalculate=False)
+    voc2012_augmented_preprocessor = DataPreprocessor(channel_means=channel_augmented_means, output_size=image_shape, min_scale_factor=0.5, max_scale_factor=2.0)
+    train_augmented_iterator = Iterator(dataset=train_augmented_dataset, minibatch_size=minibatch_size, process_func=voc2012_augmented_preprocessor.preprocess, random_seed=random_seed, scramble=True, num_jobs=1)
+
+
+
     model = DeepLab(network_backbone, num_classes=num_classes, ignore_label=ignore_label, batch_norm_momentum=batch_norm_decay, pre_trained_model=pre_trained_model, log_dir=log_dir)
 
     best_mIoU = 0
 
     for i in range(num_epochs):
 
-        print(f'Epoch number: {i}')
+        print('Epoch number: {}'.format(i))
 
         print('Start validation ...')
 
@@ -84,13 +101,14 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
 
         valid_loss_ave = valid_loss_total / valid_iterator.dataset_size
 
-        print(f'Validation loss: {valid_loss_ave:.4f} | mIoU: {mean_IOU:.4f}')
+        print('Validation loss: {:.4f} | mIoU: {:.4f}'.format(valid_loss_ave, mean_IOU))
 
         if mean_IOU > best_mIoU:
             best_mIoU = mean_IOU
-            model_savename = f'{network_backbone}_{best_mIoU:.4f}.ckpt'
-            print(f'New best mIoU achieved, model saved as {model_savename}.')
+            model_savename = '{}_{:.4f}.ckpt'.format(network_backbone, best_mIoU)
+            print('New best mIoU achieved, model saved as {}.'.format(model_savename))
             model.save(model_dir, model_savename)
+
 
         print('Start training ...')
 
@@ -98,6 +116,7 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
         num_pixels_union_total = np.zeros(num_classes)
         num_pixels_intersection_total = np.zeros(num_classes)
 
+        print('Training using VOC2012 ...')
         for _ in trange(np.ceil(train_iterator.dataset_size / minibatch_size).astype(int)):
             images, labels = train_iterator.next_minibatch()
             balanced_weight_decay = weight_decay * sum(labels != ignore_label) / labels.size
@@ -112,11 +131,30 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
 
             # validation_demo(images=images, labels=np.squeeze(labels, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'training_demo'), batch_no=_)
 
+
+        print('Training using SBD ...')
+        for _ in trange(np.ceil(train_augmented_iterator.dataset_size / minibatch_size).astype(int)):
+            images, labels = train_augmented_iterator.next_minibatch()
+            balanced_weight_decay = weight_decay * sum(labels != ignore_label) / labels.size
+            outputs, train_loss = model.train(inputs=images, labels=labels, target_height=image_shape[0], target_width=image_shape[1], learning_rate=learning_rate, weight_decay=balanced_weight_decay)
+            train_loss_total += train_loss
+
+            predictions = np.argmax(outputs, axis=-1)
+            num_pixels_union, num_pixels_intersection = count_label_prediction_matches(labels=np.squeeze(labels, axis=-1), predictions=predictions, num_classes=num_classes, ignore_label=ignore_label)
+
+            num_pixels_union_total += num_pixels_union
+            num_pixels_intersection_total += num_pixels_intersection
+
+            # validation_demo(images=images, labels=np.squeeze(labels, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'training_demo'), batch_no=_)
+
+
+
         train_iterator.shuffle_dataset()
+        train_augmented_iterator.shuffle_dataset()
 
         mIoU = mean_intersection_over_union(num_pixels_union=num_pixels_union_total, num_pixels_intersection=num_pixels_intersection_total)
         train_loss_ave = train_loss_total / train_iterator.dataset_size
-        print(f'Training loss: {train_loss_ave:.4f} | mIoU: {mIoU:.4f}')
+        print('Training loss: {:.4f} | mIoU: {:.4f}').format(train_loss_ave, mIoU)
 
     model.close()
 

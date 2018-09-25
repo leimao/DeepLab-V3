@@ -71,9 +71,32 @@ def download_voc2012(downloads_dir='./downloads', data_dir='./data'):
     may_untar(tar_filepath=filepath, destination_dir=data_dir)
 
 
+
+def download_sbd(downloads_dir='./downloads', data_dir='./data/SBD'):
+    '''
+    http://home.bharathh.info/pubs/codes/SBD/download.html
+    '''
+
+    url = 'http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz'
+
+    train_noval_dataset_url = 'http://home.bharathh.info/pubs/codes/SBD/train_noval.txt'
+
+    if not os.path.exists(downloads_dir):
+        os.makedirs(downloads_dir)
+
+    filepath = maybe_download(filename=url.split('/')[-1], url=url, destination_dir=downloads_dir, expected_bytes=None, force=False)
+
+    train_noval_filepath = maybe_download(filename=train_noval_dataset_url.split('/')[-1], url=train_noval_dataset_url, destination_dir=data_dir, expected_bytes=None, force=False)
+
+    may_untar(tar_filepath=filepath, destination_dir=data_dir)
+
+
+
+
+
 def may_untar(tar_filepath, destination_dir):
 
-    print(f'Extracting tar file {os.path.split(tar_filepath)[-1]} ...')
+    print('Extracting tar file {} ...'.format(os.path.split(tar_filepath)[-1]))
     with tarfile.open(name=tar_filepath, mode='r') as tar:
         tar.extractall(path=destination_dir)
     print('Extraction complete!')
@@ -81,7 +104,7 @@ def may_untar(tar_filepath, destination_dir):
 
 def maybe_unzip(zip_filepath, destination_dir):
 
-    print(f'Extracting zip file: {os.path.split(zip_filepath)[-1]} ...')
+    print('Extracting zip file: {} ...'.format(os.path.split(zip_filepath)[-1]))
     with zipfile.ZipFile(zip_filepath) as zf:
         zf.extractall(destination_dir)
     print('Extraction complete!')
@@ -110,9 +133,15 @@ def download_pre_trained_models(models, downloads_dir='./downloads', model_dir='
         may_untar(tar_filepath=filepath, destination_dir=os.path.join(model_dir, model))
 
 
+
+
+
+
+
 if __name__ == '__main__':
 
     print('Downloading datasets ...')
     download_voc2012()
+    download_sbd()
     print('Downloading pre-trained models ...')
     download_pre_trained_models({'resnet_50', 'resnet_101', 'mobilenet_1.0_224'})

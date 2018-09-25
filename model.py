@@ -3,7 +3,8 @@ import os
 from datetime import datetime
 
 import tensorflow as tf
-from feature_extractor import MobileNet, Resnet, Vgg16
+#from feature_extractor import MobileNet, Resnet, Vgg16
+from feature_extractor import Resnet, Vgg16
 from modules import atrous_spatial_pyramid_pooling
 
 
@@ -55,9 +56,11 @@ class DeepLab(object):
             elif base_architecture.startswith('resnet'):
                 n_layers = int(base_architecture.split('_')[-1])
                 features = Resnet(n_layers, self.inputs, self.weight_decay, self.batch_norm_momentum, self.is_training_bn)
-            elif base_architecture.startswith('mobilenet'):
-                depth_multiplier = float(base_architecture.split('_')[-1])
-                features = MobileNet(depth_multiplier, self.inputs, self.weight_decay, self.batch_norm_momentum, self.is_training_bn)
+
+            #elif base_architecture.startswith('mobilenet'):
+            #    depth_multiplier = float(base_architecture.split('_')[-1])
+            #    features = MobileNet(depth_multiplier, self.inputs, self.weight_decay, self.batch_norm_momentum, self.is_training_bn)
+
             else:
                 raise ValueError('Unknown backbone architecture!')
 
