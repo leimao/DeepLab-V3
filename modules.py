@@ -35,7 +35,7 @@ def atrous_spatial_pyramid_pooling(inputs, filters=256, regularizer=None):
 
     # Image Level Pooling
     image_feature = tf.reduce_mean(inputs, [1, 2], keepdims=True)
-    image_feature = tf.layers.conv2d(inputs=image_feature, filters=filters, kernel_size=(1, 1), padding='same', activation=None)
+    image_feature = tf.layers.conv2d(inputs=image_feature, filters=filters, kernel_size=(1, 1), padding='same')
     image_feature = tf.image.resize_bilinear(images=image_feature, size=[resize_height, resize_width], align_corners=True, name='image_pool_feature')
 
     # Merge Poolings
