@@ -13,7 +13,7 @@ from utils import (DataPreprocessor, Dataset, Iterator,
                    validation_single_demo)
 
 
-def train(network_backbone, pre_trained_model=None, train_dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', valid_dataset_filename='./data/VOCdevkit/VOC2012/valid_dataset.txt', images_dir='./data/VOCdevkit/VOC2012/JPEGImages', labels_dir='./data/VOCdevkit/VOC2012/SegmentationClass', model_dir=None, results_dir='./results', log_dir='./log'):
+def train(network_backbone, pre_trained_model=None, train_dataset_filename='./data/VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt', val_dataset_filename='./data/VOCdevkit/VOC2012/ImageSets/Segmentation/val.txt', images_dir='./data/VOCdevkit/VOC2012/JPEGImages', labels_dir='./data/VOCdevkit/VOC2012/SegmentationClass', train_augmented_dataset_filename='./data/SBD/train_noval.txt', images_augmented_dir='./data/SBD/benchmark_RELEASE/dataset/img', labels_augmented_dir='./data/SBD/benchmark_RELEASE/dataset/cls', model_dir=None, results_dir='./results', log_dir='./log'):
 
     if not model_dir:
         model_dir = './models/deeplab/{}_voc2012'.format(network_backbone)
@@ -22,14 +22,10 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
     num_epochs = 1000
     minibatch_size = 8  # Unable to do minibatch_size = 12 :(
     random_seed = 0
-    learning_rate = 1e-4
+    learning_rate = 1e-6
     weight_decay = 5e-4
     batch_norm_decay = 0.99
     image_shape = [513, 513]
-
-    train_augmented_dataset = './data/SBD/train_noval.txt'
-    images_augmented_dir = './data/SBD/benchmark_RELEASE/dataset/img'
-    labels_augmented_dir = './data/SBD/benchmark_RELEASE/dataset/cls'
 
     # validation_scales = [0.5, 1, 1.5]
     validation_scales = [1]
@@ -43,9 +39,7 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
 
     # Prepare datasets
     train_dataset = Dataset(dataset_filename=train_dataset_filename, images_dir=images_dir, labels_dir=labels_dir, image_extension='.jpg', label_extension='.png')
-    valid_dataset = Dataset(dataset_filename=valid_dataset_filename, images_dir=images_dir, labels_dir=labels_dir, image_extension='.jpg', label_extension='.png')
-
-
+    valid_dataset = Dataset(dataset_filename=val_dataset_filename, images_dir=images_dir, labels_dir=labels_dir, image_extension='.jpg', label_extension='.png')
 
     # Calculate image channel means
     channel_means = save_load_means(means_filename='./channel_means.npz', image_filenames=train_dataset.image_filenames, recalculate=False)
@@ -56,16 +50,13 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
     train_iterator = Iterator(dataset=train_dataset, minibatch_size=minibatch_size, process_func=voc2012_preprocessor.preprocess, random_seed=random_seed, scramble=True, num_jobs=1)
     valid_iterator = Iterator(dataset=valid_dataset, minibatch_size=minibatch_size, process_func=voc2012_preprocessor.preprocess, random_seed=None, scramble=False, num_jobs=1)
 
-
-
     # Prepare augmented dataset
-    train_augmented_dataset = Dataset(dataset_filename=train_augmented_dataset, images_dir=images_augmented_dir, labels_dir=labels_augmented_dir, image_extension='.jpg', label_extension='.mat')
+    train_augmented_dataset = Dataset(dataset_filename=train_augmented_dataset_filename, images_dir=images_augmented_dir, labels_dir=labels_augmented_dir, image_extension='.jpg', label_extension='.mat')
 
     channel_augmented_means = save_load_means(means_filename='./channel_augmented_means.npz', image_filenames=train_augmented_dataset.image_filenames, recalculate=False)
+
     voc2012_augmented_preprocessor = DataPreprocessor(channel_means=channel_augmented_means, output_size=image_shape, min_scale_factor=0.5, max_scale_factor=2.0)
     train_augmented_iterator = Iterator(dataset=train_augmented_dataset, minibatch_size=minibatch_size, process_func=voc2012_augmented_preprocessor.preprocess, random_seed=random_seed, scramble=True, num_jobs=1)
-
-
 
     model = DeepLab(network_backbone, num_classes=num_classes, ignore_label=ignore_label, batch_norm_momentum=batch_norm_decay, pre_trained_model=pre_trained_model, log_dir=log_dir)
 
@@ -109,7 +100,6 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
             print('New best mIoU achieved, model saved as {}.'.format(model_savename))
             model.save(model_dir, model_savename)
 
-
         print('Start training ...')
 
         train_loss_total = 0
@@ -130,7 +120,7 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
             num_pixels_intersection_total += num_pixels_intersection
 
             # validation_demo(images=images, labels=np.squeeze(labels, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'training_demo'), batch_no=_)
-
+        train_iterator.shuffle_dataset()
 
         print('Training using SBD ...')
         for _ in trange(np.ceil(train_augmented_iterator.dataset_size / minibatch_size).astype(int)):
@@ -146,14 +136,10 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
             num_pixels_intersection_total += num_pixels_intersection
 
             # validation_demo(images=images, labels=np.squeeze(labels, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'training_demo'), batch_no=_)
-
-
-
-        train_iterator.shuffle_dataset()
         train_augmented_iterator.shuffle_dataset()
 
         mIoU = mean_intersection_over_union(num_pixels_union=num_pixels_union_total, num_pixels_intersection=num_pixels_intersection_total)
-        train_loss_ave = train_loss_total / train_iterator.dataset_size
+        train_loss_ave = train_loss_total / (train_iterator.dataset_size + train_augmented_iterator.dataset_size)
         print('Training loss: {:.4f} | mIoU: {:.4f}'.format(train_loss_ave, mIoU))
 
     model.close()
@@ -166,4 +152,3 @@ if __name__ == '__main__':
 
     train('resnet_101', pre_trained_model='./models/pretrained/resnet_101/resnet_v2_101.ckpt')
     # train('mobilenet_1.0', pre_trained_model='./models/pretrained/mobilenet_1.0_224/mobilenet_v2_1.0_224.ckpt')
-    # train('mobilenet_0.35')

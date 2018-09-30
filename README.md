@@ -19,10 +19,15 @@ DeepLab is the state-of-art image semantic segmentation model developed by Googl
 * Tqdm
 * Numpy 1.14
 * OpenCV
-* PIL
+* Pillow
 
 ## Files
 
+This project uses the `nets` module contained in `tensorflow/models`. In order to achieve this, first run the following command in `SOME_DIR` (preferably outside the `PROJECT_ROOT`) to make available the entire repo:
+> git clone git@github.com:tensorflow/models.git tf-models
+
+Then run the following command to make the soft link:
+> ln -s $SOME_DIR/tf-models/research/slim/nets $PROJECT_ROOT/
 
 ## Usages
 
