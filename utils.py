@@ -443,6 +443,7 @@ def count_label_prediction_matches(labels, predictions, num_classes, ignore_labe
     predictions = np.asarray(predictions)
     assert labels.shape == predictions.shape
 
+    predictions[labels == ignore_label] = ignore_label
     for i in range(num_classes):
         label_class_mask = labels == i
         prediction_class_mask = predictions == i
