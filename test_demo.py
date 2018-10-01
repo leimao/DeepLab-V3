@@ -28,7 +28,6 @@ if __name__ == '__main__':
     deeplab.load(osp.join(model_dir, model_filename))
 
     n_samples = 8
-
     for i in trange(n_samples):
         image, label = test_iterator.next_raw_data()
         image = subtract_channel_means(image=image, channel_means=channel_means)
@@ -36,3 +35,6 @@ if __name__ == '__main__':
         output = deeplab.test(inputs=[image], target_height=image.shape[0], target_width=image.shape[1])[0]
 
         validation_single_demo(image, np.squeeze(label, axis=-1), np.argmax(output, axis=-1), demo_dir, str(i))
+    
+    deeplab.close()
+    

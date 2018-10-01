@@ -92,7 +92,7 @@ def download_sbd(downloads_dir='data/downloads/', data_dir='data/datasets/SBD/')
 
 def may_untar(tar_filepath, destination_dir):
 
-    print('Extracting tar file {} ...'.format(os.path.split(tar_filepath)[-1]))
+    print('Extracting tar file {}...'.format(os.path.split(tar_filepath)[-1]))
     with tarfile.open(name=tar_filepath, mode='r') as tar:
         tar.extractall(path=destination_dir)
     print('Extraction complete!')
@@ -100,7 +100,7 @@ def may_untar(tar_filepath, destination_dir):
 
 def maybe_unzip(zip_filepath, destination_dir):
 
-    print('Extracting zip file: {} ...'.format(os.path.split(zip_filepath)[-1]))
+    print('Extracting zip file: {}...'.format(os.path.split(zip_filepath)[-1]))
     with zipfile.ZipFile(zip_filepath) as zf:
         zf.extractall(destination_dir)
     print('Extraction complete!')
@@ -131,8 +131,8 @@ def download_pretrained_models(models, downloads_dir='data/downloads/', model_di
 
 if __name__ == '__main__':
 
-    print('Downloading datasets ...')
+    print('Downloading datasets...')
     download_voc2012()
     download_sbd()
-    print('Downloading pre-trained models ...')
+    print('Downloading pre-trained models...')
     download_pretrained_models({'resnet_50', 'resnet_101', 'mobilenet_1.0_224'})

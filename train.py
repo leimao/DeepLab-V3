@@ -64,7 +64,7 @@ def train(network_backbone, pre_trained_model=None, trainset_filename='data/data
 
         print('Epoch number: {}'.format(i))
 
-        print('Start validation ...')
+        print('Start validation...')
 
         valid_loss_total = 0
         num_pixels_union_total = np.zeros(num_classes)
@@ -98,13 +98,13 @@ def train(network_backbone, pre_trained_model=None, trainset_filename='data/data
             print('New best mIoU achieved, model saved as {}.'.format(model_savename))
             model.save(model_dir, model_savename)
 
-        print('Start training ...')
+        print('Start training...')
 
         train_loss_total = 0
         num_pixels_union_total = np.zeros(num_classes)
         num_pixels_intersection_total = np.zeros(num_classes)
 
-        print('Training using VOC2012 ...')
+        print('Training using VOC2012...')
         for _ in trange(np.ceil(train_iterator.dataset_size / minibatch_size).astype(int)):
             images, labels = train_iterator.next_minibatch()
             balanced_weight_decay = weight_decay * sum(labels != ignore_label) / labels.size
@@ -120,7 +120,7 @@ def train(network_backbone, pre_trained_model=None, trainset_filename='data/data
             # validation_demo(images=images, labels=np.squeeze(labels, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'training_demo'), batch_no=_)
         train_iterator.shuffle_dataset()
 
-        print('Training using SBD ...')
+        print('Training using SBD...')
         for _ in trange(np.ceil(train_augmented_iterator.dataset_size / minibatch_size).astype(int)):
             images, labels = train_augmented_iterator.next_minibatch()
             balanced_weight_decay = weight_decay * sum(labels != ignore_label) / labels.size

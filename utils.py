@@ -41,7 +41,7 @@ def save_load_means(means_filename, image_filenames, recalculate=False):
     '''
 
     if (not os.path.isfile(means_filename)) or recalculate:
-        print('Calculating pixel means for each channel of images ...')
+        print('Calculating pixel means for each channel of images...')
         channel_means = image_channel_means(image_filenames=image_filenames)
         np.savez(means_filename, channel_means=channel_means)
     else:
