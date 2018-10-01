@@ -9,7 +9,7 @@ Toyota Technological Institute at Chicago
 ## Introduction
 
 
-DeepLab is the state-of-art image semantic segmentation model developed by Google. Its latest version is v3+ which employes an encoder-decoder architecture with atrous spatial pyramid prooling (ASPP). While the model works extremely well for semantic segmentation, its open sourced code is extremely hard to read (at least from my personal perspective). Here we reimplemented the DeepLab v3, earlier version of DeepLab v3+ which employs encoder architecture with ASPP, in a much simpler and understandable way.
+DeepLab is the state-of-art image semantic segmentation model developed by Google. Its latest version is v3+ which employes an encoder-decoder architecture with atrous spatial pyramid prooling (ASPP). While the model works extremely well for semantic segmentation, its open sourced code is extremely hard to read (at least from my personal perspective). Here we reimplemented the DeepLab v3, the earlier version of DeepLab v3+ which employs encoder architecture with ASPP, in a much simpler and understandable way.
 
 
 ## Dependencies
