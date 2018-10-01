@@ -16,6 +16,8 @@ from urllib.request import urlretrieve
 
 from tqdm import tqdm
 
+import argparse
+
 
 class TqdmUpTo(tqdm):
     '''
@@ -131,8 +133,30 @@ def download_pretrained_models(models, downloads_dir='./downloads', model_dir='.
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser(description = 'Download DeepLab semantic segmentation datasets and pretrained backbone models.')
+
+    downloads_dir_default = './downloads'
+    data_dir_default = './data'
+    pretrained_models_dir_default = './models/pretrained'
+    pretrained_models_default = 'resnet_50 resnet_101 mobilenet_1.0_224'
+
+    parser.add_argument('--downloads_dir', type = str, help = 'Downloads directory', default = downloads_dir_default)
+    parser.add_argument('--data_dir', type = str, help = 'Data directory', default = data_dir_default)
+    parser.add_argument('--pretrained_models_dir', type = str, help = 'Pretrained models directory', default = pretrained_models_dir_default)
+    parser.add_argument('--pretrained_models', type = str, nargs = '+', help = 'Pretrained models to download: resnet_50, resnet_101, mobilenet_1.0_224', default = pretrained_models_default)
+
+    argv = parser.parse_args()
+
+    downloads_dir = argv.downloads_dir
+    data_dir = argv.data_dir
+    pretrained_models_dir = argv.pretrained_models_dir
+    pretrained_models = argv.pretrained_models
+
+
     print('Downloading datasets ...')
-    download_voc2012()
-    download_sbd()
+    print('Downloading VOC2012 dataset ...')
+    download_voc2012(downloads_dir=downloads_dir, data_dir=data_dir)
+    print('Downloading SBD dataset ...')
+    download_sbd(downloads_dir=downloads_dir, data_dir=os.path.join(data_dir,'SBD'))
     print('Downloading pre-trained models ...')
-    download_pretrained_models({'resnet_50', 'resnet_101', 'mobilenet_1.0_224'})
+    download_pretrained_models(models=pretrained_models, downloads_dir=downloads_dir, model_dir=pretrained_models_dir)

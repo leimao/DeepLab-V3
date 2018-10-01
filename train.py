@@ -12,6 +12,8 @@ from utils import (DataPreprocessor, Dataset, Iterator,
                    save_load_means, subtract_channel_means, validation_demo,
                    validation_single_demo)
 
+import argparse
+
 
 def train(network_backbone, pre_trained_model=None, train_dataset_filename='./data/VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt', val_dataset_filename='./data/VOCdevkit/VOC2012/ImageSets/Segmentation/val.txt', images_dir='./data/VOCdevkit/VOC2012/JPEGImages', labels_dir='./data/VOCdevkit/VOC2012/SegmentationClass', train_augmented_dataset_filename='./data/SBD/train_noval.txt', images_augmented_dir='./data/SBD/benchmark_RELEASE/dataset/img', labels_augmented_dir='./data/SBD/benchmark_RELEASE/dataset/cls', model_dir=None, results_dir='./results', log_dir='./log'):
 
@@ -145,10 +147,60 @@ def train(network_backbone, pre_trained_model=None, train_dataset_filename='./da
     model.close()
 
 
+
 if __name__ == '__main__':
 
-    tf.set_random_seed(0)
-    np.random.seed(0)
 
-    train('resnet_101', pre_trained_model='./models/pretrained/resnet_101/resnet_v2_101.ckpt')
-    # train('mobilenet_1.0', pre_trained_model='./models/pretrained/mobilenet_1.0_224/mobilenet_v2_1.0_224.ckpt')
+    parser = argparse.ArgumentParser(description = 'Train DeepLab v3 for image semantic segmantation.')
+
+    network_backbone_default = 'resnet_101'
+    pre_trained_model_default  = './models/pretrained/resnet_101/resnet_v2_101.ckpt'
+    train_dataset_filename_default = './data/VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt'
+    val_dataset_filename_default = './data/VOCdevkit/VOC2012/ImageSets/Segmentation/val.txt'
+    images_dir_default = './data/VOCdevkit/VOC2012/JPEGImages'
+    labels_dir_default  = './data/VOCdevkit/VOC2012/SegmentationClass'
+    train_augmented_dataset_filename_default = './data/SBD/train_noval.txt'
+    images_augmented_dir_default = './data/SBD/benchmark_RELEASE/dataset/img'
+    labels_augmented_dir_default = './data/SBD/benchmark_RELEASE/dataset/cls'
+    model_dir_default = './models/deeplab/{}_voc2012'.format(network_backbone_default)
+    results_dir_default = './results'
+    log_dir_default = './log'
+    random_seed_default = 0
+
+    parser.add_argument('--network_backbone', type = str, help = 'Network backbones: resnet_50, resnet_101, mobilenet_1.0_224. Default: resnet_101', default = network_backbone_default)
+    parser.add_argument('--pre_trained_model', type = str, help = 'Pretrained model directory', default = pre_trained_model_default)
+    parser.add_argument('--train_dataset_filename', type = str, help = 'Train dataset filename', default = train_dataset_filename_default)
+    parser.add_argument('--val_dataset_filename', type = str, help = 'Validation dataset filename', default = val_dataset_filename_default)
+    parser.add_argument('--images_dir', type = str, help = 'Images directory', default = images_dir_default)
+    parser.add_argument('--labels_dir', type = str, help = 'Labels directory', default = labels_dir_default)
+    parser.add_argument('--train_augmented_dataset_filename', type = str, help = 'Train augmented dataset filename', default = train_augmented_dataset_filename_default)
+    parser.add_argument('--images_augmented_dir', type = str, help = 'Images augmented directory', default = images_augmented_dir_default)
+    parser.add_argument('--labels_augmented_dir', type = str, help = 'Labels augmented directory', default = labels_augmented_dir_default)
+    parser.add_argument('--model_dir', type = str, help = 'Trained model saving directory', default = model_dir_default)
+    parser.add_argument('--results_dir', type = str, help = 'Training demo directory', default = results_dir_default)
+    parser.add_argument('--log_dir', type = str, help = 'TensorBoard log directory', default = log_dir_default)
+    parser.add_argument('--random_seed', type = int, help = 'Random seed for model training.', default = random_seed_default)
+
+    argv = parser.parse_args()
+
+    network_backbone = argv.network_backbone
+    pre_trained_model = argv.pre_trained_model
+    train_dataset_filename = argv.train_dataset_filename
+    val_dataset_filename = argv.val_dataset_filename
+    images_dir = argv.images_dir
+    labels_dir = argv.labels_dir
+    train_augmented_dataset_filename = argv.train_augmented_dataset_filename
+    images_augmented_dir = argv.images_augmented_dir
+    labels_augmented_dir = argv.labels_augmented_dir
+    model_dir = argv.model_dir
+    results_dir = argv.results_dir
+    log_dir = argv.log_dir
+    random_seed = argv.random_seed
+
+
+    tf.set_random_seed(random_seed)
+    np.random.seed(random_seed)
+
+
+    train(network_backbone=network_backbone, pre_trained_model=pre_trained_model, train_dataset_filename=train_dataset_filename, val_dataset_filename=val_dataset_filename, images_dir=images_dir, labels_dir=labels_dir, train_augmented_dataset_filename=train_augmented_dataset_filename, images_augmented_dir=images_augmented_dir, labels_augmented_dir=labels_augmented_dir, model_dir=model_dir, results_dir=results_dir, log_dir=log_dir)
+
