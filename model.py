@@ -9,7 +9,7 @@ from modules import atrous_spatial_pyramid_pooling
 
 class DeepLab(object):
 
-    def __init__(self, base_architecture, training=True, num_classes=21, ignore_label=255, batch_norm_momentum=0.9997, pre_trained_model=None, log_dir='./log'):
+    def __init__(self, base_architecture, training=True, num_classes=21, ignore_label=255, batch_norm_momentum=0.9997, pre_trained_model=None, log_dir='data/logs/deeplab/'):
 
         self.is_training = tf.placeholder(tf.bool, None, name='is_training')
         self.num_classes = num_classes
@@ -147,6 +147,6 @@ class DeepLab(object):
 
 if __name__ == '__main__':
 
-    deeplab = DeepLab('resnet_101', num_classes=10, batch_norm_momentum=0.9997, pre_trained_model='./models/resnet_101/resnet_v2_101.ckpt')
+    deeplab = DeepLab('resnet_101', pre_trained_model='data/models/pretrained/resnet_101/resnet_v2_101.ckpt')
     print('Graph compile successful.')
     deeplab.close()

@@ -59,7 +59,7 @@ def maybe_download(filename, url, destination_dir, expected_bytes=None, force=Fa
     return filepath
 
 
-def download_voc2012(downloads_dir='./downloads', data_dir='./data'):
+def download_voc2012(downloads_dir='data/downloads/', data_dir='data/datasets/'):
 
     url = 'http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar'
 
@@ -71,7 +71,7 @@ def download_voc2012(downloads_dir='./downloads', data_dir='./data'):
     may_untar(tar_filepath=filepath, destination_dir=data_dir)
 
 
-def download_sbd(downloads_dir='./downloads', data_dir='./data/SBD'):
+def download_sbd(downloads_dir='data/downloads/', data_dir='data/datasets/SBD/'):
     '''
     http://home.bharathh.info/pubs/codes/SBD/download.html
     '''
@@ -106,7 +106,7 @@ def maybe_unzip(zip_filepath, destination_dir):
     print('Extraction complete!')
 
 
-def download_pretrained_models(models, downloads_dir='./downloads', model_dir='./models/pretrained'):
+def download_pretrained_models(models, downloads_dir='data/downloads/', model_dir='data/models/pretrained/'):
     '''
     Download ImageNet pre-trained models
     https://github.com/tensorflow/models/tree/master/research/slim
