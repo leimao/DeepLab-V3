@@ -19,6 +19,7 @@ DeepLab is the state-of-art image semantic segmentation model developed by Googl
 * Tqdm 4.26.0
 * Numpy 1.14
 * OpenCV 3.4.3
+* Pillow 5.3.0
 
 ## Files
 
@@ -124,15 +125,38 @@ optional arguments:
                         Random seed for model training.
 ```
 
-For simplicity, please just run the following command in terminal:
+For simplicity, please run the following command in terminal:
 
 ```bash
 $ python train.py
 ```
 
-### Test Model
+With learning rate of ``1e-5``, the mIOU could be greater 0.7 after 20 epochs, which is comparable to the test statistics of DeepLab v3 in the publication.
+
+### Demos
+
+To show some demos, please run the following command in terminal:
+
+```bash
+$ python test_demo.py
+```
 
 
+Image| Label | Prediction |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](data/demos/deeplab/resnet_101_voc2012/image_0.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_0_label.png) |  ![](data/demos/deeplab/resnet_101_voc2012/image_0_prediction.png)
+
+Image| Label | Prediction |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](data/demos/deeplab/resnet_101_voc2012/image_1.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_1_label.png) |  ![](data/demos/deeplab/resnet_101_voc2012/image_1_prediction.png)
+
+Image| Label | Prediction |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](data/demos/deeplab/resnet_101_voc2012/image_2.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_2_label.png) |  ![](data/demos/deeplab/resnet_101_voc2012/image_2_prediction.png)
+
+Image| Label | Prediction |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](data/demos/deeplab/resnet_101_voc2012/image_3.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_label.png) |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_prediction.png)
 
 
 
@@ -145,5 +169,7 @@ L.-C. Chen, G. Papandreou, F. Schroff, and H. Adam. [Rethinking Atrous Convoluti
 L.-C. Chen, Y. Zhu, G. Papandreou, F. Schroff, H. Adam. [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611). arXiv:1802.02611, 2018.
 
 
+## To-Do List
 
+- [ ] Test script for new arbitrary test images.
 
