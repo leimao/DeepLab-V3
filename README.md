@@ -8,9 +8,7 @@ Toyota Technological Institute at Chicago
 
 ## Introduction
 
-
-DeepLab is the state-of-art image semantic segmentation model developed by Google. Its latest version is v3+ which employes an encoder-decoder architecture with atrous spatial pyramid prooling (ASPP). While the model works extremely well for semantic segmentation, its open sourced code is extremely hard to read (at least from my personal perspective). Here we reimplemented the DeepLab v3, the earlier version of DeepLab v3+ which employs encoder architecture with ASPP, in a much simpler and understandable way.
-
+DeepLab is a series of image semantic segmentation models, whose latest version, i.e. v3+, proves to be the state-of-art. Its major contribution is the use of atrous spatial pyramid pooling (ASPP) operation at the end of the encoder. While the model works extremely well, its open sourced code is hard to read (at least from my personal perspective). Here we reimplemented DeepLab v3, the earlier version of v3+ (which only additionally employs the decoder architecture), in a much simpler and understandable way.
 
 ## Dependencies
 
@@ -38,13 +36,13 @@ DeepLab is the state-of-art image semantic segmentation model developed by Googl
 └── utils.py
 ```
 
-The `nets` directory containing network training files was copied from [`tensorflow/models/research/slim/nets`](https://github.com/tensorflow/models/tree/1af55e018eebce03fb61bba9959a04672536107d/research/slim/nets)
+The `nets` directory contains network definition files that are directly copied from [`tensorflow/models/research/slim/nets`](https://github.com/tensorflow/models/tree/master/research/slim/nets)
 
 ## Usages
 
 ### Download Dataset
 
-Download and unzip VOC2012 dataset, SBD dataset, and pretrained models to designated directories.
+Download and extract VOC2012 dataset, SBD dataset, and pretrained models to designated directories.
 
 ```bash
 $ python download.py --help
@@ -78,7 +76,6 @@ For simplicity, please just run the following command in terminal:
 ```bash
 $ python download.py
 ```
-
 
 ### Train Model
 
@@ -131,7 +128,7 @@ For simplicity, please run the following command in terminal:
 $ python train.py
 ```
 
-With learning rate of ``1e-5``, the mIOU could be greater 0.7 after 20 epochs, which is comparable to the test statistics of DeepLab v3 in the publication.
+With learning rate of `1e-5`, the mIOU could be greater 0.7 after 20 epochs, which is comparable to the test statistics of DeepLab v3 in the publication.
 
 ### Demos
 
@@ -140,7 +137,6 @@ To show some demos, please run the following command in terminal:
 ```bash
 $ python test_demo.py
 ```
-
 
 Image| Label | Prediction |
 :-------------------------:|:-------------------------:|:-------------------------:
@@ -158,8 +154,6 @@ Image| Label | Prediction |
 :-------------------------:|:-------------------------:|:-------------------------:
 ![](data/demos/deeplab/resnet_101_voc2012/image_3.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_label.png) |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_prediction.png)
 
-
-
 ## References
 
 L.-C. Chen, G. Papandreou, I. Kokkinos, K. Murphy, and A. L. Yuille. [Deeplab: Semantic Image Segmentation with Deep Convolutional Nets, Atrous Convolution, and Fully Connected CRFs](https://arxiv.org/abs/1606.00915). TPAMI, 2017.
@@ -168,8 +162,6 @@ L.-C. Chen, G. Papandreou, F. Schroff, and H. Adam. [Rethinking Atrous Convoluti
 
 L.-C. Chen, Y. Zhu, G. Papandreou, F. Schroff, H. Adam. [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611). arXiv:1802.02611, 2018.
 
-
 ## To-Do List
 
 - [ ] Test script for new arbitrary test images.
-
