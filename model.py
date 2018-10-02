@@ -150,5 +150,5 @@ class DeepLab(object):
 if __name__ == '__main__':
 
     deeplab = DeepLab('resnet_101', pre_trained_model='data/models/pretrained/resnet_101/resnet_v2_101.ckpt')
-    print('Graph compile successful.')
+    print('Graph compiled successfully.')
     deeplab.close()
