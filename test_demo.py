@@ -15,7 +15,7 @@ if __name__ == '__main__':
     labels_dir = osp.join(data_dir, 'SegmentationClass/')
     demo_dir = 'data/demos/deeplab/resnet_101_voc2012/'
     model_dir = 'data/models/deeplab/resnet_101_voc2012/'
-    model_filename = 'resnet_101_0.7148.ckpt'
+    model_filename = 'resnet_101_0.7076.ckpt'
 
     channel_means = save_load_means(means_filename='channel_means.npz', image_filenames=None)
 
@@ -30,11 +30,12 @@ if __name__ == '__main__':
     n_samples = 8
     for i in trange(n_samples):
         image, label = test_iterator.next_raw_data()
-        image = subtract_channel_means(image=image, channel_means=channel_means)
+        image_input = subtract_channel_means(image=image, channel_means=channel_means)
 
-        output = deeplab.test(inputs=[image], target_height=image.shape[0], target_width=image.shape[1])[0]
+        output = deeplab.test(inputs=[image_input], target_height=image.shape[0], target_width=image.shape[1])[0]
 
         validation_single_demo(image, np.squeeze(label, axis=-1), np.argmax(output, axis=-1), demo_dir, str(i))
-    
+
     deeplab.close()
+    
     

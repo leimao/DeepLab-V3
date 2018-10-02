@@ -16,6 +16,7 @@ class DeepLab(object):
         self.ignore_label = ignore_label
         self.inputs_shape = [None, None, None, 3]
         self.labels_shape = [None, None, None, 1]
+        self.training = training
         self.inputs = tf.placeholder(tf.float32, shape=self.inputs_shape, name='inputs')
         self.labels = tf.placeholder(tf.uint8, shape=self.labels_shape, name='labels')
 
@@ -40,7 +41,7 @@ class DeepLab(object):
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
 
-        if training:
+        if self.training:
             self.train_step = 0
             now = datetime.now()
             self.log_dir = os.path.join(log_dir, now.strftime('%Y%m%d-%H%M%S'))
@@ -141,7 +142,8 @@ class DeepLab(object):
 
     def close(self):
 
-        self.writer.close()
+        if self.training:
+            self.writer.close()
         self.sess.close()
 
 
