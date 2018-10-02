@@ -85,14 +85,14 @@ $ python download.py
 $ python train.py --help
 usage: train.py [-h] [--network_backbone NETWORK_BACKBONE]
                 [--pre_trained_model PRE_TRAINED_MODEL]
-                [--train_dataset_filename TRAIN_DATASET_FILENAME]
-                [--val_dataset_filename VAL_DATASET_FILENAME]
-                [--images_dir IMAGES_DIR] [--labels_dir LABELS_DIR]
-                [--train_augmented_dataset_filename TRAIN_AUGMENTED_DATASET_FILENAME]
+                [--trainset_filename TRAINSET_FILENAME]
+                [--valset_filename VALSET_FILENAME] [--images_dir IMAGES_DIR]
+                [--labels_dir LABELS_DIR]
+                [--trainset_augmented_filename TRAINSET_AUGMENTED_FILENAME]
                 [--images_augmented_dir IMAGES_AUGMENTED_DIR]
                 [--labels_augmented_dir LABELS_AUGMENTED_DIR]
-                [--model_dir MODEL_DIR] [--results_dir RESULTS_DIR]
-                [--log_dir LOG_DIR] [--random_seed RANDOM_SEED]
+                [--model_dir MODEL_DIR] [--log_dir LOG_DIR]
+                [--random_seed RANDOM_SEED]
 
 Train DeepLab v3 for image semantic segmantation.
 
@@ -103,15 +103,15 @@ optional arguments:
                         mobilenet_1.0_224. Default: resnet_101
   --pre_trained_model PRE_TRAINED_MODEL
                         Pretrained model directory
-  --train_dataset_filename TRAIN_DATASET_FILENAME
+  --trainset_filename TRAINSET_FILENAME
                         Train dataset filename
-  --val_dataset_filename VAL_DATASET_FILENAME
+  --valset_filename VALSET_FILENAME
                         Validation dataset filename
   --images_dir IMAGES_DIR
                         Images directory
   --labels_dir LABELS_DIR
                         Labels directory
-  --train_augmented_dataset_filename TRAIN_AUGMENTED_DATASET_FILENAME
+  --trainset_augmented_filename TRAINSET_AUGMENTED_FILENAME
                         Train augmented dataset filename
   --images_augmented_dir IMAGES_AUGMENTED_DIR
                         Images augmented directory
@@ -119,8 +119,6 @@ optional arguments:
                         Labels augmented directory
   --model_dir MODEL_DIR
                         Trained model saving directory
-  --results_dir RESULTS_DIR
-                        Training demo directory
   --log_dir LOG_DIR     TensorBoard log directory
   --random_seed RANDOM_SEED
                         Random seed for model training.
