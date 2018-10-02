@@ -1,6 +1,7 @@
 
-import os
 import argparse
+import os
+
 import numpy as np
 
 import tensorflow as tf
@@ -143,20 +144,16 @@ def train(network_backbone, pre_trained_model=None, trainset_filename='data/data
     model.close()
 
 
-
-
 if __name__ == '__main__':
 
-
-    parser = argparse.ArgumentParser(description = 'Train DeepLab v3 for image semantic segmantation.')
-
+    parser = argparse.ArgumentParser(description='Train DeepLab v3 for image semantic segmantation.')
 
     network_backbone_default = 'resnet_101'
-    pre_trained_model_default  = 'data/models/pretrained/resnet_101/resnet_v2_101.ckpt'
+    pre_trained_model_default = 'data/models/pretrained/resnet_101/resnet_v2_101.ckpt'
     trainset_filename_default = 'data/datasets/VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt'
     valset_filename_default = 'data/datasets/VOCdevkit/VOC2012/ImageSets/Segmentation/val.txt'
     images_dir_default = 'data/datasets/VOCdevkit/VOC2012/JPEGImages/'
-    labels_dir_default  = 'data/datasets/VOCdevkit/VOC2012/SegmentationClass/'
+    labels_dir_default = 'data/datasets/VOCdevkit/VOC2012/SegmentationClass/'
     trainset_augmented_filename_default = 'data/datasets/SBD/train_noval.txt'
     images_augmented_dir_default = 'data/datasets/SBD/benchmark_RELEASE/dataset/img/'
     labels_augmented_dir_default = 'data/datasets/SBD/benchmark_RELEASE/dataset/cls/'
@@ -164,18 +161,18 @@ if __name__ == '__main__':
     log_dir_default = 'data/logs/deeplab/'
     random_seed_default = 0
 
-    parser.add_argument('--network_backbone', type = str, help = 'Network backbones: resnet_50, resnet_101, mobilenet_1.0_224. Default: resnet_101', default = network_backbone_default)
-    parser.add_argument('--pre_trained_model', type = str, help = 'Pretrained model directory', default = pre_trained_model_default)
-    parser.add_argument('--trainset_filename', type = str, help = 'Train dataset filename', default = trainset_filename_default)
-    parser.add_argument('--valset_filename', type = str, help = 'Validation dataset filename', default = valset_filename_default)
-    parser.add_argument('--images_dir', type = str, help = 'Images directory', default = images_dir_default)
-    parser.add_argument('--labels_dir', type = str, help = 'Labels directory', default = labels_dir_default)
-    parser.add_argument('--trainset_augmented_filename', type = str, help = 'Train augmented dataset filename', default = trainset_augmented_filename_default)
-    parser.add_argument('--images_augmented_dir', type = str, help = 'Images augmented directory', default = images_augmented_dir_default)
-    parser.add_argument('--labels_augmented_dir', type = str, help = 'Labels augmented directory', default = labels_augmented_dir_default)
-    parser.add_argument('--model_dir', type = str, help = 'Trained model saving directory', default = model_dir_default)
-    parser.add_argument('--log_dir', type = str, help = 'TensorBoard log directory', default = log_dir_default)
-    parser.add_argument('--random_seed', type = int, help = 'Random seed for model training.', default = random_seed_default)
+    parser.add_argument('--network_backbone', type=str, help='Network backbones: resnet_50, resnet_101, mobilenet_1.0_224. Default: resnet_101', default=network_backbone_default)
+    parser.add_argument('--pre_trained_model', type=str, help='Pretrained model directory', default=pre_trained_model_default)
+    parser.add_argument('--trainset_filename', type=str, help='Train dataset filename', default=trainset_filename_default)
+    parser.add_argument('--valset_filename', type=str, help='Validation dataset filename', default=valset_filename_default)
+    parser.add_argument('--images_dir', type=str, help='Images directory', default=images_dir_default)
+    parser.add_argument('--labels_dir', type=str, help='Labels directory', default=labels_dir_default)
+    parser.add_argument('--trainset_augmented_filename', type=str, help='Train augmented dataset filename', default=trainset_augmented_filename_default)
+    parser.add_argument('--images_augmented_dir', type=str, help='Images augmented directory', default=images_augmented_dir_default)
+    parser.add_argument('--labels_augmented_dir', type=str, help='Labels augmented directory', default=labels_augmented_dir_default)
+    parser.add_argument('--model_dir', type=str, help='Trained model saving directory', default=model_dir_default)
+    parser.add_argument('--log_dir', type=str, help='TensorBoard log directory', default=log_dir_default)
+    parser.add_argument('--random_seed', type=int, help='Random seed for model training.', default=random_seed_default)
 
     argv = parser.parse_args()
 
@@ -192,10 +189,7 @@ if __name__ == '__main__':
     log_dir = argv.log_dir
     random_seed = argv.random_seed
 
-
     tf.set_random_seed(random_seed)
     np.random.seed(random_seed)
 
-
     train(network_backbone=network_backbone, pre_trained_model=pre_trained_model, trainset_filename=trainset_filename, valset_filename=valset_filename, images_dir=images_dir, labels_dir=labels_dir, trainset_augmented_filename=trainset_augmented_filename, images_augmented_dir=images_augmented_dir, labels_augmented_dir=labels_augmented_dir, model_dir=model_dir, log_dir=log_dir)
-
