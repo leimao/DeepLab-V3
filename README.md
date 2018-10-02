@@ -19,6 +19,7 @@ DeepLab is the state-of-art image semantic segmentation model developed by Googl
 * Tqdm 4.26.0
 * Numpy 1.14
 * OpenCV 3.4.3
+* Pillow 5.3.0
 
 ## Files
 
