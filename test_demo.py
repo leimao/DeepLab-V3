@@ -37,5 +37,3 @@ if __name__ == '__main__':
         validation_single_demo(image, np.squeeze(label, axis=-1), np.argmax(output, axis=-1), demo_dir, str(i))
 
     deeplab.close()
-    
-    
