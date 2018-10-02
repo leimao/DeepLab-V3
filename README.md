@@ -125,7 +125,7 @@ optional arguments:
                         Random seed for model training.
 ```
 
-For simplicity, please just run the following command in terminal:
+For simplicity, please run the following command in terminal:
 
 ```bash
 $ python train.py
@@ -133,7 +133,14 @@ $ python train.py
 
 With learning rate of ``1e-5``, the mIOU could be greater 0.7 after 20 epochs, which is comparable to the test statistics of DeepLab v3 in the publication.
 
-### Test Model
+### Demos
+
+To show some demos, please run the following command in terminal:
+
+```bash
+$ python test_demo.py
+```
+
 
 Image| Label | Prediction |
 :-------------------------:|:-------------------------:|:-------------------------:
@@ -162,5 +169,7 @@ L.-C. Chen, G. Papandreou, F. Schroff, and H. Adam. [Rethinking Atrous Convoluti
 L.-C. Chen, Y. Zhu, G. Papandreou, F. Schroff, H. Adam. [Encoder-Decoder with Atrous Separable Convolution for Semantic Image Segmentation](https://arxiv.org/abs/1802.02611). arXiv:1802.02611, 2018.
 
 
+## To-Do List
 
+- [ ] Test script for new arbitrary test images.
 
