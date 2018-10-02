@@ -9,6 +9,7 @@ University of Chicago
 dukeleimao@gmail.com
 '''
 
+import argparse
 import os
 import tarfile
 import zipfile
@@ -77,14 +78,12 @@ def download_sbd(downloads_dir='data/downloads/', data_dir='data/datasets/SBD/')
     '''
 
     url = 'http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz'
-
     train_noval_url = 'http://home.bharathh.info/pubs/codes/SBD/train_noval.txt'
 
     if not os.path.exists(downloads_dir):
         os.makedirs(downloads_dir)
 
     filepath = maybe_download(filename=url.split('/')[-1], url=url, destination_dir=downloads_dir, expected_bytes=None, force=False)
-
     maybe_download(filename=train_noval_url.split('/')[-1], url=train_noval_url, destination_dir=data_dir, expected_bytes=None, force=False)
 
     may_untar(tar_filepath=filepath, destination_dir=data_dir)
@@ -124,6 +123,7 @@ def download_pretrained_models(models, downloads_dir='data/downloads/', model_di
         os.makedirs(downloads_dir)
 
     for model in models:
+        print('Downloading pretrained model {}'.format(model))
         url = urls[model]
         filepath = maybe_download(filename=url.split('/')[-1], url=url, destination_dir=downloads_dir, expected_bytes=None, force=False)
         may_untar(tar_filepath=filepath, destination_dir=os.path.join(model_dir, model))
@@ -131,8 +131,27 @@ def download_pretrained_models(models, downloads_dir='data/downloads/', model_di
 
 if __name__ == '__main__':
 
-    print('Downloading datasets...')
-    download_voc2012()
-    download_sbd()
-    print('Downloading pre-trained models...')
-    download_pretrained_models({'resnet_50', 'resnet_101', 'mobilenet_1.0_224'})
+    parser = argparse.ArgumentParser(description='Download DeepLab semantic segmentation datasets and pretrained backbone models.')
+
+    downloads_dir_default = 'data/downloads/'
+    data_dir_default = 'data/datasets/'
+    pretrained_models_dir_default = 'data/models/pretrained/'
+    pretrained_models_default = ['resnet_50', 'resnet_101', 'mobilenet_1.0_224']
+
+    parser.add_argument('--downloads_dir', type=str, help='Downloads directory', default=downloads_dir_default)
+    parser.add_argument('--data_dir', type=str, help='Data directory', default=data_dir_default)
+    parser.add_argument('--pretrained_models_dir', type=str, help='Pretrained models directory', default=pretrained_models_dir_default)
+    parser.add_argument('--pretrained_models', type=str, nargs='+', help='Pretrained models to download: resnet_50, resnet_101, mobilenet_1.0_224', default=pretrained_models_default)
+
+    argv = parser.parse_args()
+
+    downloads_dir = argv.downloads_dir
+    data_dir = argv.data_dir
+    pretrained_models_dir = argv.pretrained_models_dir
+    pretrained_models = argv.pretrained_models
+
+    print('Downloading datasets ...')
+    download_voc2012(downloads_dir=downloads_dir, data_dir=data_dir)
+    download_sbd(downloads_dir=downloads_dir, data_dir=os.path.join(data_dir, 'SBD'))
+    print('Downloading pre-trained models ...')
+    download_pretrained_models(models=pretrained_models, downloads_dir=downloads_dir, model_dir=pretrained_models_dir)

@@ -1,4 +1,5 @@
 
+import argparse
 import os
 
 import numpy as np
@@ -22,7 +23,7 @@ def train(network_backbone, pre_trained_model=None, trainset_filename='data/data
     num_epochs = 1000
     minibatch_size = 8  # Unable to do minibatch_size = 12 :(
     random_seed = 0
-    learning_rate = 1e-6
+    learning_rate = 1e-5
     weight_decay = 5e-4
     batch_norm_decay = 0.99
     image_shape = [513, 513]
@@ -145,7 +146,50 @@ def train(network_backbone, pre_trained_model=None, trainset_filename='data/data
 
 if __name__ == '__main__':
 
-    tf.set_random_seed(0)
-    np.random.seed(0)
+    parser = argparse.ArgumentParser(description='Train DeepLab v3 for image semantic segmantation.')
 
-    train('resnet_101', pre_trained_model='data/models/pretrained/resnet_101/resnet_v2_101.ckpt')
+    network_backbone_default = 'resnet_101'
+    pre_trained_model_default = 'data/models/pretrained/resnet_101/resnet_v2_101.ckpt'
+    trainset_filename_default = 'data/datasets/VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt'
+    valset_filename_default = 'data/datasets/VOCdevkit/VOC2012/ImageSets/Segmentation/val.txt'
+    images_dir_default = 'data/datasets/VOCdevkit/VOC2012/JPEGImages/'
+    labels_dir_default = 'data/datasets/VOCdevkit/VOC2012/SegmentationClass/'
+    trainset_augmented_filename_default = 'data/datasets/SBD/train_noval.txt'
+    images_augmented_dir_default = 'data/datasets/SBD/benchmark_RELEASE/dataset/img/'
+    labels_augmented_dir_default = 'data/datasets/SBD/benchmark_RELEASE/dataset/cls/'
+    model_dir_default = 'data/models/deeplab/{}_voc2012/'.format(network_backbone_default)
+    log_dir_default = 'data/logs/deeplab/'
+    random_seed_default = 0
+
+    parser.add_argument('--network_backbone', type=str, help='Network backbones: resnet_50, resnet_101, mobilenet_1.0_224. Default: resnet_101', default=network_backbone_default)
+    parser.add_argument('--pre_trained_model', type=str, help='Pretrained model directory', default=pre_trained_model_default)
+    parser.add_argument('--trainset_filename', type=str, help='Train dataset filename', default=trainset_filename_default)
+    parser.add_argument('--valset_filename', type=str, help='Validation dataset filename', default=valset_filename_default)
+    parser.add_argument('--images_dir', type=str, help='Images directory', default=images_dir_default)
+    parser.add_argument('--labels_dir', type=str, help='Labels directory', default=labels_dir_default)
+    parser.add_argument('--trainset_augmented_filename', type=str, help='Train augmented dataset filename', default=trainset_augmented_filename_default)
+    parser.add_argument('--images_augmented_dir', type=str, help='Images augmented directory', default=images_augmented_dir_default)
+    parser.add_argument('--labels_augmented_dir', type=str, help='Labels augmented directory', default=labels_augmented_dir_default)
+    parser.add_argument('--model_dir', type=str, help='Trained model saving directory', default=model_dir_default)
+    parser.add_argument('--log_dir', type=str, help='TensorBoard log directory', default=log_dir_default)
+    parser.add_argument('--random_seed', type=int, help='Random seed for model training.', default=random_seed_default)
+
+    argv = parser.parse_args()
+
+    network_backbone = argv.network_backbone
+    pre_trained_model = argv.pre_trained_model
+    trainset_filename = argv.trainset_filename
+    valset_filename = argv.valset_filename
+    images_dir = argv.images_dir
+    labels_dir = argv.labels_dir
+    trainset_augmented_filename = argv.trainset_augmented_filename
+    images_augmented_dir = argv.images_augmented_dir
+    labels_augmented_dir = argv.labels_augmented_dir
+    model_dir = argv.model_dir
+    log_dir = argv.log_dir
+    random_seed = argv.random_seed
+
+    tf.set_random_seed(random_seed)
+    np.random.seed(random_seed)
+
+    train(network_backbone=network_backbone, pre_trained_model=pre_trained_model, trainset_filename=trainset_filename, valset_filename=valset_filename, images_dir=images_dir, labels_dir=labels_dir, trainset_augmented_filename=trainset_augmented_filename, images_augmented_dir=images_augmented_dir, labels_augmented_dir=labels_augmented_dir, model_dir=model_dir, log_dir=log_dir)
