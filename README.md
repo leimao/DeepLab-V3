@@ -19,6 +19,7 @@ DeepLab is the state-of-art image semantic segmentation model developed by Googl
 * Tqdm 4.26.0
 * Numpy 1.14
 * OpenCV 3.4.3
+* Pillow 5.3.0
 
 ## Files
 
@@ -130,9 +131,25 @@ For simplicity, please just run the following command in terminal:
 $ python train.py
 ```
 
+With learning rate of ``1e-5``, the mIOU could be greater 0.7 after 20 epochs, which is comparable to the test statistics of DeepLab v3 in the publication.
+
 ### Test Model
 
+Image| Label | Prediction |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](data/demos/deeplab/resnet_101_voc2012/image_0.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_0_label.jpg) |  ![](data/demos/deeplab/resnet_101_voc2012/image_0_prediction.jpg)
 
+Image| Label | Prediction |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](data/demos/deeplab/resnet_101_voc2012/image_1.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_1_label.jpg) |  ![](data/demos/deeplab/resnet_101_voc2012/image_1_prediction.jpg)
+
+Image| Label | Prediction |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](data/demos/deeplab/resnet_101_voc2012/image_2.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_2_label.jpg) |  ![](data/demos/deeplab/resnet_101_voc2012/image_2_prediction.jpg)
+
+Image| Label | Prediction |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](data/demos/deeplab/resnet_101_voc2012/image_3.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_label.jpg) |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_prediction.jpg)
 
 
 
