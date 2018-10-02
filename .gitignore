@@ -1,3 +1,4 @@
 .vscode/
 sync.ffs_db
 *.npz
+__pycache__/
