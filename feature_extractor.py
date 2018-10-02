@@ -10,131 +10,131 @@ def Vgg16(imgs_in, weight_decay, batch_norm_momentum):
         imgs_in,
         64,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv1_1",
+        name='conv1_1',
     )
     conv1_2 = tf.layers.conv2d(
         conv1_1,
         64,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv1_2",
+        name='conv1_2',
     )
-    pool1 = tf.layers.max_pooling2d(conv1_2, pool_size=[2, 2], strides=[2, 2], name="pool1")
+    pool1 = tf.layers.max_pooling2d(conv1_2, pool_size=[2, 2], strides=[2, 2], name='pool1')
 
     conv2_1 = tf.layers.conv2d(
         pool1,
         128,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv2_1",
+        name='conv2_1',
     )
     conv2_2 = tf.layers.conv2d(
         conv2_1,
         128,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv2_2",
+        name='conv2_2',
     )
-    pool2 = tf.layers.max_pooling2d(conv2_2, pool_size=[2, 2], strides=[2, 2], name="pool2")
+    pool2 = tf.layers.max_pooling2d(conv2_2, pool_size=[2, 2], strides=[2, 2], name='pool2')
 
     conv3_1 = tf.layers.conv2d(
         pool2,
         256,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv3_1",
+        name='conv3_1',
     )
     conv3_2 = tf.layers.conv2d(
         conv3_1,
         256,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv3_2",
+        name='conv3_2',
     )
     conv3_3 = tf.layers.conv2d(
         conv3_2,
         256,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv3_3",
+        name='conv3_3',
     )
-    pool3 = tf.layers.max_pooling2d(conv3_3, pool_size=[2, 2], strides=[2, 2], name="pool3")
+    pool3 = tf.layers.max_pooling2d(conv3_3, pool_size=[2, 2], strides=[2, 2], name='pool3')
 
     conv4_1 = tf.layers.conv2d(
         pool3,
         512,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv4_1",
+        name='conv4_1',
     )
     conv4_2 = tf.layers.conv2d(
         conv4_1,
         512,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv4_2",
+        name='conv4_2',
     )
     conv4_3 = tf.layers.conv2d(
         conv4_2,
         512,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv4_3",
+        name='conv4_3',
     )
-    pool4 = tf.layers.max_pooling2d(conv4_3, pool_size=[2, 2], strides=[2, 2], name="pool4")
+    pool4 = tf.layers.max_pooling2d(conv4_3, pool_size=[2, 2], strides=[2, 2], name='pool4')
 
     conv5_1 = tf.layers.conv2d(
         pool4,
         512,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv5_1",
+        name='conv5_1',
     )
     conv5_2 = tf.layers.conv2d(
         conv5_1,
         512,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv5_2",
+        name='conv5_2',
     )
     conv5_3 = tf.layers.conv2d(
         conv5_2,
         512,
         [3, 3],
-        padding="same",
+        padding='same',
         activation=tf.nn.relu,
         kernel_regularizer=regularizer,
-        name="conv5_3",
+        name='conv5_3',
     )
-    pool5 = tf.layers.max_pooling2d(conv5_3, pool_size=[2, 2], strides=[2, 2], name="pool5")
+    pool5 = tf.layers.max_pooling2d(conv5_3, pool_size=[2, 2], strides=[2, 2], name='pool5')
 
-    downsample = tf.layers.average_pooling2d(conv4_1, pool_size=[4, 4], strides=[4, 4], name="downsample")
-    merged = tf.add(x=pool5, y=downsample, name="merged")
+    downsample = tf.layers.average_pooling2d(conv4_1, pool_size=[4, 4], strides=[4, 4], name='downsample')
+    merged = tf.add(x=pool5, y=downsample, name='merged')
 
     return merged
 

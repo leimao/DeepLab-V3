@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 
-def train_valid_test_split(dataset_filenames, split_ratios, train_dataset_filename, valid_dataset_filename, test_dataset_filename):
+def train_val_test_split(dataset_filenames, split_ratios, train_dataset_filename, valid_dataset_filename, test_dataset_filename):
     '''
     Split dataset into train, valid, and test datasets
     dataset_filenames: a list of image filenames
@@ -39,22 +39,22 @@ def train_valid_test_split(dataset_filenames, split_ratios, train_dataset_filena
         file.write('\n'.join(test_filenames))
 
 
-def voc2012_train_valid_test_split(dataset_dir='./data/VOCdevkit/VOC2012', split_ratios=[0.7, 0.2, 0.1]):
+def voc2012_split(dataset_dir='data/datasets/VOCdevkit/VOC2012/', split_ratios=[0.7, 0.2, 0.1]):
 
-    images_dir = os.path.join(dataset_dir, 'JPEGImages')
-    labels_dir = os.path.join(dataset_dir, 'SegmentationClass')
+    images_dir = os.path.join(dataset_dir, 'JPEGImages/')
+    labels_dir = os.path.join(dataset_dir, 'SegmentationClass/')
 
     image_filenames = [filename.split('.')[0] for filename in os.listdir(images_dir) if os.path.isfile(os.path.join(images_dir, filename)) and filename.endswith('.jpg')]
     label_filenames = [filename.split('.')[0] for filename in os.listdir(labels_dir) if os.path.isfile(os.path.join(labels_dir, filename)) and filename.endswith('.png')]
 
     dataset_filenames = np.intersect1d(image_filenames, label_filenames)
 
-    train_dataset_filename = os.path.join(dataset_dir, 'train_dataset.txt')
-    valid_dataset_filename = os.path.join(dataset_dir, 'valid_dataset.txt')
-    test_dataset_filename = os.path.join(dataset_dir, 'test_dataset.txt')
+    train_dataset_filename = os.path.join(dataset_dir, 'train.txt')
+    valid_dataset_filename = os.path.join(dataset_dir, 'val.txt')
+    test_dataset_filename = os.path.join(dataset_dir, 'test.txt')
 
     try:
-        train_valid_test_split(
+        train_val_test_split(
             dataset_filenames=dataset_filenames,
             split_ratios=split_ratios,
             train_dataset_filename=train_dataset_filename,
@@ -68,4 +68,4 @@ def voc2012_train_valid_test_split(dataset_dir='./data/VOCdevkit/VOC2012', split
 
 if __name__ == '__main__':
 
-    voc2012_train_valid_test_split()
+    voc2012_split()

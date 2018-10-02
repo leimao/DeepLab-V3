@@ -9,14 +9,13 @@ University of Chicago
 dukeleimao@gmail.com
 '''
 
+import argparse
 import os
 import tarfile
 import zipfile
 from urllib.request import urlretrieve
 
 from tqdm import tqdm
-
-import argparse
 
 
 class TqdmUpTo(tqdm):
@@ -61,7 +60,7 @@ def maybe_download(filename, url, destination_dir, expected_bytes=None, force=Fa
     return filepath
 
 
-def download_voc2012(downloads_dir='./downloads', data_dir='./data'):
+def download_voc2012(downloads_dir='data/downloads/', data_dir='data/datasets/'):
 
     url = 'http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar'
 
@@ -73,7 +72,7 @@ def download_voc2012(downloads_dir='./downloads', data_dir='./data'):
     may_untar(tar_filepath=filepath, destination_dir=data_dir)
 
 
-def download_sbd(downloads_dir='./downloads', data_dir='./data/SBD'):
+def download_sbd(downloads_dir='data/downloads/', data_dir='data/datasets/SBD/'):
     '''
     http://home.bharathh.info/pubs/codes/SBD/download.html
     '''
@@ -94,7 +93,7 @@ def download_sbd(downloads_dir='./downloads', data_dir='./data/SBD'):
 
 def may_untar(tar_filepath, destination_dir):
 
-    print('Extracting tar file {} ...'.format(os.path.split(tar_filepath)[-1]))
+    print('Extracting tar file {}...'.format(os.path.split(tar_filepath)[-1]))
     with tarfile.open(name=tar_filepath, mode='r') as tar:
         tar.extractall(path=destination_dir)
     print('Extraction complete!')
@@ -102,13 +101,13 @@ def may_untar(tar_filepath, destination_dir):
 
 def maybe_unzip(zip_filepath, destination_dir):
 
-    print('Extracting zip file: {} ...'.format(os.path.split(zip_filepath)[-1]))
+    print('Extracting zip file: {}...'.format(os.path.split(zip_filepath)[-1]))
     with zipfile.ZipFile(zip_filepath) as zf:
         zf.extractall(destination_dir)
     print('Extraction complete!')
 
 
-def download_pretrained_models(models, downloads_dir='./downloads', model_dir='./models/pretrained'):
+def download_pretrained_models(models, downloads_dir='data/downloads/', model_dir='data/models/pretrained/'):
     '''
     Download ImageNet pre-trained models
     https://github.com/tensorflow/models/tree/master/research/slim
@@ -126,18 +125,20 @@ def download_pretrained_models(models, downloads_dir='./downloads', model_dir='.
         os.makedirs(downloads_dir)
 
     for model in models:
+        print('Downloading pretrained model {}'.format(model))
         url = urls[model]
         filepath = maybe_download(filename=url.split('/')[-1], url=url, destination_dir=downloads_dir, expected_bytes=None, force=False)
         may_untar(tar_filepath=filepath, destination_dir=os.path.join(model_dir, model))
+
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description = 'Download DeepLab semantic segmentation datasets and pretrained backbone models.')
 
-    downloads_dir_default = './downloads'
-    data_dir_default = './data'
-    pretrained_models_dir_default = './models/pretrained'
+    downloads_dir_default = 'data/downloads/'
+    data_dir_default = 'data/datasets/'
+    pretrained_models_dir_default = 'data/models/pretrained/'
     pretrained_models_default = 'resnet_50 resnet_101 mobilenet_1.0_224'
 
     parser.add_argument('--downloads_dir', type = str, help = 'Downloads directory', default = downloads_dir_default)
@@ -150,13 +151,12 @@ if __name__ == '__main__':
     downloads_dir = argv.downloads_dir
     data_dir = argv.data_dir
     pretrained_models_dir = argv.pretrained_models_dir
-    pretrained_models = argv.pretrained_models
-
+    pretrained_models = argv.pretrained_models.split(' ')
 
     print('Downloading datasets ...')
     print('Downloading VOC2012 dataset ...')
-    download_voc2012(downloads_dir=downloads_dir, data_dir=data_dir)
+    #download_voc2012(downloads_dir=downloads_dir, data_dir=data_dir)
     print('Downloading SBD dataset ...')
-    download_sbd(downloads_dir=downloads_dir, data_dir=os.path.join(data_dir,'SBD'))
+    #download_sbd(downloads_dir=downloads_dir, data_dir=os.path.join(data_dir,'SBD'))
     print('Downloading pre-trained models ...')
     download_pretrained_models(models=pretrained_models, downloads_dir=downloads_dir, model_dir=pretrained_models_dir)

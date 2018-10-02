@@ -41,7 +41,7 @@ def save_load_means(means_filename, image_filenames, recalculate=False):
     '''
 
     if (not os.path.isfile(means_filename)) or recalculate:
-        print('Calculating pixel means for each channel of images ...')
+        print('Calculating pixel means for each channel of images...')
         channel_means = image_channel_means(image_filenames=image_filenames)
         np.savez(means_filename, channel_means=channel_means)
     else:
@@ -420,14 +420,14 @@ def validation_demo(images, labels, predictions, demo_dir, batch_no):
         save_annotation(label=predictions[i], filename=os.path.join(demo_dir, 'image_{}_{}_prediction.png'.format(batch_no, i)), add_colormap=True)
 
 
-def validation_single_demo(image, label, prediction, demo_dir, filename):
+def validation_single_demo(image, label, prediction, demo_dir, val_no):
 
     if not os.path.exists(demo_dir):
         os.makedirs(demo_dir)
 
-    cv2.imwrite(os.path.join(demo_dir, 'image_{}.jpg'.format(filename)), image)
-    save_annotation(label=label, filename=os.path.join(demo_dir, 'image_{}_label.png'.format(filename)), add_colormap=True)
-    save_annotation(label=prediction, filename=os.path.join(demo_dir, 'image_{}_prediction.png'.format(filename)), add_colormap=True)
+    cv2.imwrite(os.path.join(demo_dir, 'image_{}.jpg'.format(val_no)), image)
+    save_annotation(label=label, filename=os.path.join(demo_dir, 'image_{}_label.png'.format(val_no)), add_colormap=True)
+    save_annotation(label=prediction, filename=os.path.join(demo_dir, 'image_{}_prediction.png'.format(val_no)), add_colormap=True)
 
 
 def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):
@@ -516,11 +516,11 @@ if __name__ == '__main__':
 
     np.random.seed(0)
 
-    train_dataset = Dataset(dataset_filename='./data/VOCdevkit/VOC2012/train_dataset.txt', images_dir='./data/VOCdevkit/VOC2012/JPEGImages', labels_dir='./data/VOCdevkit/VOC2012/SegmentationClass', image_extension='.jpg', label_extension='.png')
+    train_dataset = Dataset(dataset_filename='data/datasets/VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt', images_dir='data/datasets/VOCdevkit/VOC2012/JPEGImages/', labels_dir='data/datasets/VOCdevkit/VOC2012/SegmentationClass/', image_extension='.jpg', label_extension='.png')
     print(train_dataset.image_filenames)
     print(train_dataset.size)
 
-    channel_means = save_load_means(means_filename='./channel_means.npz', image_filenames=train_dataset.image_filenames, recalculate=False)
+    channel_means = save_load_means(means_filename='channel_means.npz', image_filenames=train_dataset.image_filenames, recalculate=False)
     print(channel_means)
 
     voc2012_preprocessor = DataPreprocessor(channel_means=channel_means, output_size=[513, 513], max_scale_factor=1.5)
@@ -536,4 +536,4 @@ if __name__ == '__main__':
         # print(images.shape, labels.shape)
     time_end = time.time()
     time_elapsed = time_end - time_start
-    print("Time Elapsed: %02d:%02d:%02d" % (time_elapsed // 3600, (time_elapsed % 3600 // 60), (time_elapsed % 60 // 1)))
+    print('Time Elapsed: %02d:%02d:%02d' % (time_elapsed // 3600, (time_elapsed % 3600 // 60), (time_elapsed % 60 // 1)))
