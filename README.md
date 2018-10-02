@@ -131,9 +131,25 @@ For simplicity, please just run the following command in terminal:
 $ python train.py
 ```
 
+With learning rate of ``1e-5``, the mIOU could be greater 0.7 after 20 epochs, which is comparable to the test statistics of DeepLab v3 in the publication.
+
 ### Test Model
 
+Image| Label | Prediction |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](data/demos/deeplab/resnet_101_voc2012/image_0.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_0_label.png) |  ![](data/demos/deeplab/resnet_101_voc2012/image_0_prediction.png)
 
+Image| Label | Prediction |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](data/demos/deeplab/resnet_101_voc2012/image_1.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_1_label.png) |  ![](data/demos/deeplab/resnet_101_voc2012/image_1_prediction.png)
+
+Image| Label | Prediction |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](data/demos/deeplab/resnet_101_voc2012/image_2.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_2_label.png) |  ![](data/demos/deeplab/resnet_101_voc2012/image_2_prediction.png)
+
+Image| Label | Prediction |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](data/demos/deeplab/resnet_101_voc2012/image_3.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_label.png) |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_prediction.png)
 
 
 
