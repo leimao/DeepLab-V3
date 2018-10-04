@@ -15,7 +15,6 @@ import argparse
 import os
 import tarfile
 import zipfile
-from urllib.request import urlretrieve
 
 import requests
 
@@ -101,7 +100,7 @@ def download_sbd(downloads_dir='data/downloads/', data_dir='data/datasets/SBD/',
 
 def download_cityscapes(downloads_dir='data/downloads/cityscapes/', data_dir='data/datasets/cityscapes/', force=False):
     '''
-    Corresponds to the following bash commands:
+    Does basically the same thing as following bash commands:
     curl -c cs_cookies -d "username=StArchon&password=eUpMJjMW4mbEUjZ&submit=Login" https://www.cityscapes-dataset.com/login/
     curl -b cs_cookies -JLO https://www.cityscapes-dataset.com/file-handling/?packageID=1
     '''
