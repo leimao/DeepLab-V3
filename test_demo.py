@@ -14,7 +14,7 @@ if __name__ == '__main__':
     images_dir = osp.join(data_dir, 'JPEGImages/')
     labels_dir = osp.join(data_dir, 'SegmentationClass/')
     demo_dir = 'data/demos/deeplab/resnet_101_voc2012/'
-    model_dir = 'data/models/deeplab/resnet_101_voc2012/'
+    models_dir = 'data/models/deeplab/resnet_101_voc2012/'
     model_filename = 'resnet_101_0.7076.ckpt'
 
     channel_means = save_load_means(means_filename='channel_means.npz', image_filenames=None)
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     test_iterator = Iterator(dataset=test_dataset, minibatch_size=minibatch_size, process_func=None, random_seed=None, scramble=False, num_jobs=1)
 
     deeplab = DeepLab('resnet_101', training=False)
-    deeplab.load(osp.join(model_dir, model_filename))
+    deeplab.load(osp.join(models_dir, model_filename))
 
     n_samples = 8
     for i in trange(n_samples):

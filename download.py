@@ -36,7 +36,7 @@ def _download(sess, url, destination_dir, filename, expected_bytes, force):
         if not os.path.exists(destination_dir):
             os.makedirs(destination_dir)
         print('Downloading: ' + filename)
-        chunk_size = 1024
+        chunk_size = 8192
         total_size = int(r.headers.get('Content-Length', 0))
         pbar = tqdm(total=total_size, unit='B', unit_scale=True, unit_divisor=1024, desc=filename)
         with open(os.path.join(destination_dir, filename), 'wb') as f:

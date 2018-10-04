@@ -55,7 +55,7 @@ class RandomStateStack:
         self.random_state = np.random.get_state()
 
     def __enter__(self):
-        return None
+        return
 
     def __exit__(self, type, value, traceback):
         np.random.set_state(self.random_state)
@@ -111,10 +111,9 @@ class Iterator(object):
 
         idx = np.arange(self.dataset_size)
         if scramble:
-            with RandomStateStack():
-                if random_seed is not None:
-                    np.random.seed(random_seed)
-                np.random.shuffle(idx)
+            if random_seed is not None:
+                np.random.seed(random_seed)
+            np.random.shuffle(idx)
         image_filenames = dataset.image_filenames[idx]
         label_filenames = dataset.label_filenames[idx]
 
@@ -126,14 +125,11 @@ class Iterator(object):
 
     def shuffle_dataset(self, random_seed=None):
 
-        if random_seed is not None:
-            np.random.seed(random_seed)
         self.current_index = 0
         idx = np.arange(self.dataset_size)
-        with RandomStateStack():
-            if random_seed is not None:
-                np.random.seed(random_seed)
-            np.random.shuffle(idx)
+        if random_seed is not None:
+            np.random.seed(random_seed)
+        np.random.shuffle(idx)
         self.image_filenames = self.image_filenames[idx]
         self.label_filenames = self.label_filenames[idx]
 
@@ -257,10 +253,7 @@ def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale
 
     rescaled_size = [round(original_height * scale_factor), round(original_width * scale_factor)]
 
-    image_augmented = image.copy()
-    label_augmented = label.copy()
-
-    image_augmented, label_augmented = resize_image_and_label(image=image_augmented, label=label_augmented, output_size=rescaled_size)
+    image, label = resize_image_and_label(image=image, label=label, output_size=rescaled_size)
 
     # if rescaled_size[0] < target_height:
     #     vertical_pad = round(target_height * 1.5) - rescaled_size[0]
@@ -284,17 +277,17 @@ def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale
     horizonal_pad_left = horizonal_pad // 2
     horizonal_pad_right = horizonal_pad - horizonal_pad_left
 
-    image_augmented, label_augmented = pad_image_and_label(image=image_augmented, label=label_augmented, top=vertical_pad_up, bottom=vertical_pad_down, left=horizonal_pad_left, right=horizonal_pad_right, pixel_value=0, label_value=255)
+    image, label = pad_image_and_label(image=image, label=label, top=vertical_pad_up, bottom=vertical_pad_down, left=horizonal_pad_left, right=horizonal_pad_right, pixel_value=0, label_value=255)
 
-    image_augmented, label_augmented = random_crop(image=image_augmented, label=label_augmented, output_size=output_size)
+    image, label = random_crop(image=image, label=label, output_size=output_size)
 
     # Flip image and label
     if np.random.random() < 0.5:
-        image_augmented, label_augmented = flip_image_and_label(image=image_augmented, label=label_augmented)
+        image, label = flip_image_and_label(image=image, label=label)
 
-    label_augmented = np.expand_dims(label_augmented, axis=2)
+    label = np.expand_dims(label, axis=2)
 
-    return image_augmented, label_augmented
+    return image, label
 
 
 class DataPreprocessor(object):
