@@ -19,9 +19,10 @@ import zipfile
 import requests
 
 from tqdm import tqdm
+from utils import static_vars
 
 
-def _maybe_download(sess, url, destination_dir, filename, expected_bytes, force):
+def _download(sess, url, destination_dir, filename, expected_bytes, force):
     r = sess.get(url, stream=True)
     if not filename:
         if 'Content-Disposition' in r.headers:
@@ -60,28 +61,40 @@ def _maybe_download(sess, url, destination_dir, filename, expected_bytes, force)
     return filepath
 
 
-def maybe_download(urls, destination_dir, filenames=None, expected_bytes=None, login_dict=None, force=False):
+def download(urls, destination_dir, filenames=None, expected_bytes=None, login_dict=None, force=False):
     with requests.Session() as sess:
         if login_dict:
             sess.post(login_dict['url'], data=login_dict['payload'])
         if isinstance(urls, str):
-            return _maybe_download(sess, urls, destination_dir, filenames, expected_bytes, force)
+            return _download(sess, urls, destination_dir, filenames, expected_bytes, force)
         n_urls = len(urls)
         if filenames:
-            assert len(filenames) == n_urls, 'number of filenames does not match that of urls'
+            assert not isinstance(filenames, str) and len(filenames) == n_urls, 'number of filenames does not match that of urls'
         else:
             filenames = [None] * n_urls
         if expected_bytes:
             assert len(expected_bytes) == n_urls, 'number of expected_bytes does not match that of urls'
         else:
             expected_bytes = [None] * n_urls
-        return [_maybe_download(sess, url, destination_dir, filename, expected_byte, force) for url, filename, expected_byte in zip(urls, filenames, expected_bytes)]
+        return [_download(sess, url, destination_dir, filename, expected_byte, force) for url, filename, expected_byte in zip(urls, filenames, expected_bytes)]
+
+
+@static_vars(utils_dict={'zip': (zipfile.ZipFile, 'namelist'), 'tar': (tarfile.open, 'getnames')})
+def extract(archive_filepath, archive_type, destination_dir, force=False):
+
+    print('Extracting {} file: {}'.format(archive_type, os.path.split(archive_filepath)[-1]))
+    utils = extract.utils_dict[archive_type]
+    with utils[0](archive_filepath) as archive:
+        for name in getattr(archive, utils[1])():
+            if not os.path.exists(os.path.join(destination_dir, name)) or force:
+                archive.extract(name, path=destination_dir)
+    print('Extraction complete!')
 
 
 def download_voc2012(downloads_dir='data/downloads/', data_dir='data/datasets/', force=False):
     url = 'http://host.robots.ox.ac.uk/pascal/VOC/voc2012/VOCtrainval_11-May-2012.tar'
-    filepath = maybe_download(url, downloads_dir, force=force)
-    maybe_untar(filepath, data_dir, force=force)
+    filepath = download(url, downloads_dir, force=force)
+    extract(filepath, 'tar', data_dir, force=force)
 
 
 def download_sbd(downloads_dir='data/downloads/', data_dir='data/datasets/SBD/', force=False):
@@ -92,10 +105,10 @@ def download_sbd(downloads_dir='data/downloads/', data_dir='data/datasets/SBD/',
     url = 'http://www.eecs.berkeley.edu/Research/Projects/CS/vision/grouping/semantic_contours/benchmark.tgz'
     train_noval_url = 'http://home.bharathh.info/pubs/codes/SBD/train_noval.txt'
 
-    filepath = maybe_download(url, downloads_dir, filenames='SBD.tgz', force=force)
-    maybe_download(train_noval_url, data_dir, force=force)
+    filepath = download(url, downloads_dir, filenames='SBD.tgz', force=force)
+    download(train_noval_url, data_dir, force=force)
 
-    maybe_untar(filepath, data_dir, force=force)
+    extract(filepath, 'tar', data_dir, force=force)
 
 
 def download_cityscapes(downloads_dir='data/downloads/cityscapes/', data_dir='data/datasets/cityscapes/', force=False):
@@ -108,30 +121,9 @@ def download_cityscapes(downloads_dir='data/downloads/cityscapes/', data_dir='da
     urls = ['https://www.cityscapes-dataset.com/file-handling/?packageID={}'.format(id) for id in [1, 2, 3, 4, 10, 11]]
     login_dict = {'url': 'https://www.cityscapes-dataset.com/login/', 'payload': {'username': 'StArchon', 'password': 'eUpMJjMW4mbEUjZ', 'submit': 'Login'}}
 
-    filepaths = maybe_download(urls, downloads_dir, login_dict=login_dict, force=force)
-
+    filepaths = download(urls, downloads_dir, login_dict=login_dict, force=force)
     for filepath in filepaths:
-        maybe_unzip(filepath, data_dir, force=force)
-
-
-def maybe_untar(tar_filepath, destination_dir, force=False):
-
-    print('Extracting tar file {}...'.format(os.path.split(tar_filepath)[-1]))
-    with tarfile.open(name=tar_filepath, mode='r') as tf:
-        for name in tf.getnames():
-            if not os.path.exists(os.path.join(destination_dir, name)) or force:
-                tf.extract(name, path=destination_dir)
-    print('Extraction complete!')
-
-
-def maybe_unzip(zip_filepath, destination_dir, force=False):
-
-    print('Extracting zip file: {}...'.format(os.path.split(zip_filepath)[-1]))
-    with zipfile.ZipFile(zip_filepath) as zf:
-        for name in zf.namelist():
-            if not os.path.exists(os.path.join(destination_dir, name)) or force:
-                zf.extract(name, path=destination_dir)
-    print('Extraction complete!')
+        extract(filepath, 'zip', data_dir, force=force)
 
 
 def download_pretrained_models(models, downloads_dir='data/downloads/', model_dir='data/models/pretrained/', force=False):
@@ -148,14 +140,10 @@ def download_pretrained_models(models, downloads_dir='data/downloads/', model_di
         'mobilenet_1.0_224': 'https://storage.googleapis.com/mobilenet_v2/checkpoints/mobilenet_v2_1.0_224.tgz'
     }
 
-    if not os.path.exists(downloads_dir):
-        os.makedirs(downloads_dir)
-
     for model in models:
         print('Downloading pretrained {}'.format(model))
-        url = urls[model]
-        filepath = maybe_download(url, downloads_dir, force=force)
-        maybe_untar(tar_filepath=filepath, destination_dir=os.path.join(model_dir, model), force=force)
+        filepath = download(urls[model], downloads_dir, force=force)
+        extract(filepath, 'tar', os.path.join(model_dir, model), force=force)
 
 
 if __name__ == '__main__':
