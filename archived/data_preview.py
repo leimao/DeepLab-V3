@@ -6,7 +6,6 @@ import numpy as np
 import cv2
 from PIL import Image
 
-
 if __name__ == '__main__':
 
     data_dir = 'data/datasets/VOCdevkit/VOC2012/'

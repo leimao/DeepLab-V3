@@ -3,12 +3,12 @@ import os
 import time
 
 import numpy as np
-from tqdm import tqdm
 
 import cv2
 import scipy.io
 from joblib import Parallel, delayed
 from PIL import Image
+from tqdm import tqdm
 
 
 def image_channel_means(image_filenames):
