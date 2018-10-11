@@ -1,4 +1,3 @@
-
 import os
 import time
 
@@ -40,7 +39,7 @@ def save_load_means(means_filename, image_filenames, recalculate=False):
     recalculate: recalculate image channel means regardless the existence of mean file
     '''
 
-    if (not os.path.isfile(means_filename)) or recalculate:
+    if not os.path.isfile(means_filename) or recalculate:
         print('Calculating pixel means for each channel of images...')
         channel_means = image_channel_means(image_filenames=image_filenames)
         np.savez(means_filename, channel_means=channel_means)
@@ -99,7 +98,7 @@ class Iterator(object):
         self.dataset_size = dataset.size
         self.minibatch_size = minibatch_size
         if self.minibatch_size > self.dataset_size:
-            print('Warning: dataset size should be no less than minibatch size.')
+            print('Warning: minibatch size should be no more than dataset size.')
             print('Set minibatch size equal to dataset size.')
             self.minibatch_size = self.dataset_size
         self.image_filenames, self.label_filenames = self.read_dataset(dataset=dataset, scramble=scramble, random_seed=random_seed)
@@ -157,7 +156,6 @@ class Iterator(object):
 
         # Multithread image processing
         # Reference: https://www.kaggle.com/inoryy/fast-image-pre-process-in-parallel
-
         results = Parallel(n_jobs=self.num_jobs)(delayed(self.process_func)(image_filename, label_filename) for image_filename, label_filename in zip(image_filenames_minibatch, label_filenames_minibatch))
         images, labels = zip(*results)
 
@@ -250,9 +248,7 @@ def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale
     target_width = output_size[1]
 
     scale_factor = np.random.uniform(low=min_scale_factor, high=max_scale_factor)
-
     rescaled_size = [round(original_height * scale_factor), round(original_width * scale_factor)]
-
     image, label = resize_image_and_label(image=image, label=label, output_size=rescaled_size)
 
     # if rescaled_size[0] < target_height:
