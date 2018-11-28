@@ -3,8 +3,8 @@ import tarfile
 import zipfile
 
 import requests
-
 from tqdm import tqdm
+
 from utils import static_vars
 
 
@@ -18,8 +18,8 @@ def _download(sess, url, destination_dir, filename, expected_bytes, force):
         else:
             filename = url.split('/')[-1]
     filepath = os.path.join(destination_dir, filename)
-    if not os.path.exists(filepath) or expected_bytes and os.stat(filepath).st_size != expected_bytes or force:
-        if not os.path.exists(destination_dir):
+    if not os.path.isfile(filepath) or expected_bytes and os.stat(filepath).st_size != expected_bytes or force:
+        if not os.path.isdir(destination_dir):
             os.makedirs(destination_dir)
         print('Downloading: ' + filename)
         chunk_size = 8192
@@ -66,12 +66,11 @@ def download(urls, destination_dir, filenames=None, expected_bytes=None, login_d
 
 
 @static_vars(utils_dict={'zip': (zipfile.ZipFile, 'namelist'), 'tar': (tarfile.open, 'getnames')})
-def extract(archive_filepath, archive_type, destination_dir, force=False):
-
-    print('Extracting {} file: {}'.format(archive_type, os.path.split(archive_filepath)[-1]))
-    utils = extract.utils_dict[archive_type]
+def decompress(archive_filepath, archive_type, destination_dir, force=False):
+    print('Decompressing {} file: {}'.format(archive_type, os.path.split(archive_filepath)[-1]))
+    utils = decompress.utils_dict[archive_type]
     with utils[0](archive_filepath) as archive:
         for name in tqdm(getattr(archive, utils[1])()):
             if not os.path.exists(os.path.join(destination_dir, name)) or force:
                 archive.extract(name, path=destination_dir)
-    print('Extraction complete!')
+    print('Decompression complete!')
