@@ -11,7 +11,7 @@ dukeleimao@gmail.com
 import tensorflow as tf
 
 
-def atrous_spatial_pyramid_pooling(inputs, 256, regularizer=None):
+def atrous_spatial_pyramid_pooling(inputs, filters=256, regularizer=None):
     '''
     Atrous Spatial Pyramid Pooling (ASPP) Block
     '''

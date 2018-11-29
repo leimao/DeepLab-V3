@@ -9,22 +9,23 @@ from modules import atrous_spatial_pyramid_pooling
 
 
 class DeepLab(object):
-    def __init__(self, base_architecture='resnet_101', n_classes=21, ignore_label=255, batch_norm_momentum=0.9997, pre_trained_model=None, log_dir='data/logs/deeplab/'):
+    def __init__(self, base_architecture='resnet_101', n_classes=21, ignore_label=255, learning_rate=1e-5, weight_decay=5e-4, batch_norm_momentum=0.9997, pre_trained_model=None, log_dir='data/logs/deeplab/'):
         self.n_classes = n_classes
         self.ignore_label = ignore_label
+        self.raw_weight_decay = weight_decay
         self.batch_norm_momentum = batch_norm_momentum
 
         self.imgs = tf.placeholder(tf.float32, shape=[None, None, None, 3], name='imgs')
         self.lbls = tf.placeholder(tf.uint8, shape=[None, None, None, 1], name='lbls')
         self.is_training = tf.placeholder(tf.bool, name='is_training')
         self.target_size = tf.placeholder(tf.int32, shape=[2], name='target_size')
-        self.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
         self.weight_decay = tf.placeholder(tf.float32, name='weight_decay')
         self.regularizer = tf.contrib.layers.l2_regularizer(self.weight_decay)
 
         self.build_model(base_architecture)
         if pre_trained_model:
             self.initialize_backbone_from_pretrained_weights(pre_trained_model)
+        self.lr = tf.train.exponential_decay(learning_rate, tf.train.create_global_step(), 3000, 0.7)
         self.build_optimizer()
 
         now = datetime.now()
@@ -33,8 +34,6 @@ class DeepLab(object):
         self.summary()
         self.val_step = tf.get_variable('val_step', initializer=tf.constant(0))
         self.inc_val_step = tf.assign_add(self.val_step, 1)
-
-        # Initialize tensorflow session
         self.saver = tf.train.Saver()
         # NUM_THREADS = int(os.environ['OMP_NUM_THREADS'])
         # self.sess = tf.Session(config=tf.ConfigProto(intra_op_parallelism_threads=NUM_THREADS, inter_op_parallelism_threads=NUM_THREADS))
@@ -65,16 +64,15 @@ class DeepLab(object):
 
     def build_optimizer(self):
         with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss, global_step=tf.train.create_global_step())
+            self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss, global_step=tf.train.get_global_step())
 
     def summary(self):
         with tf.name_scope('loss'):
             self.train_summaries = tf.summary.scalar('train', self.loss)
             self.val_summaries = tf.summary.scalar('val', self.loss)
 
-    def train(self, imgs, lbls, learning_rate, weight_decay, target_size=None):
-        weight_decay *= np.mean(lbls != self.ignore_label)
-        _, logits, loss, summaries, train_step = self.sess.run([self.optimizer, self.logits, self.loss, self.train_summaries, tf.train.get_global_step()], feed_dict={self.imgs: imgs, self.lbls: lbls, self.learning_rate: learning_rate, self.target_size: target_size if target_size else imgs.shape[1:3], self.weight_decay: weight_decay, self.is_training: True})
+    def train(self, imgs, lbls, target_size=None):
+        _, logits, loss, summaries, train_step = self.sess.run([self.optimizer, self.logits, self.loss, self.train_summaries, tf.train.get_global_step()], feed_dict={self.imgs: imgs, self.lbls: lbls, self.target_size: target_size if target_size else imgs.shape[1:3], self.weight_decay: self.raw_weight_decay * np.mean(lbls != self.ignore_label), self.is_training: True})
         self.writer.add_summary(summaries, train_step)
         return logits, loss
 

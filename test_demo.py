@@ -8,7 +8,7 @@ from utils import fetch_batch, multiscale_test, validation_demo
 
 if __name__ == '__main__':
     demo_dir = 'data/demos/deeplab/resnet_101_cs/'
-    model_filepath = 'data/models/deeplab/resnet_101_cs/resnet_101_0.6326.ckpt'
+    model_filepath = 'data/models/deeplab/resnet_101_cs/resnet_101_0.6628.ckpt'
     channel_means = np.load('data/datasets/cityscapes/channel_means.npz')['channel_means']
     batch_size = 16
     testset = read_cs_tfrecords('test').batch(batch_size)

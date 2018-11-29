@@ -18,9 +18,9 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
         model_dir = 'data/models/deeplab/{}_cs/'.format(network_backbone)
     n_classes = 19
     ignore_label = 255
-    n_epochs = 100
+    n_epochs = 20
     batch_size = 8
-    learning_rate = 1e-5    # TODO: use some policy
+    learning_rate = 1e-5
     weight_decay = 5e-4
     batch_norm_decay = 0.99
     scales = [1]
@@ -31,7 +31,7 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
         os.makedirs(log_dir)
 
     channel_means = np.load('data/datasets/cityscapes/channel_means.npz')['channel_means']
-    trainset = read_cs_tfrecords(['train', 'train_extra']).shuffle(10000).batch(batch_size)
+    trainset = read_cs_tfrecords(['train', 'train_extra']).shuffle(3000).batch(batch_size)
     train_it = trainset.make_initializable_iterator()
     train_init = train_it.initializer
     train_data = train_it.get_next()
@@ -39,7 +39,7 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
     val_it = valset.make_initializable_iterator()
     val_init = val_it.initializer
     val_data = val_it.get_next()
-    model = DeepLab(base_architecture=network_backbone, n_classes=n_classes, ignore_label=ignore_label, batch_norm_momentum=batch_norm_decay, pre_trained_model=pre_trained_model, log_dir=log_dir)
+    model = DeepLab(base_architecture=network_backbone, n_classes=n_classes, ignore_label=ignore_label, learning_rate=learning_rate, weight_decay=weight_decay, batch_norm_momentum=batch_norm_decay, pre_trained_model=pre_trained_model, log_dir=log_dir)
 
     trainset_size = 0
     track_trainset_size = True
@@ -91,7 +91,7 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
         while True:
             try:
                 imgs, lbls = fetch_batch(model.sess.run(train_data), channel_means, augment=True, min_scale_factor=0.25, max_scale_factor=1.0)
-                logits, train_loss = model.train(imgs, lbls, learning_rate, weight_decay)
+                logits, train_loss = model.train(imgs, lbls)
                 train_loss_total += train_loss
                 predictions = np.argmax(logits, axis=-1)
                 num_pixels_union, num_pixels_intersection = count_label_prediction_matches(labels=np.squeeze(lbls, axis=-1), predictions=predictions, num_classes=n_classes, ignore_label=ignore_label)
@@ -120,26 +120,12 @@ if __name__ == '__main__':
 
     network_backbone_default = 'resnet_101'
     pre_trained_model_default = 'data/models/pretrained/resnet_101/resnet_v2_101.ckpt'
-    # trainset_filename_default = 'data/datasets/VOCdevkit/VOC2012/ImageSets/Segmentation/train.txt'
-    # valset_filename_default = 'data/datasets/VOCdevkit/VOC2012/ImageSets/Segmentation/val.txt'
-    # images_dir_default = 'data/datasets/VOCdevkit/VOC2012/JPEGImages/'
-    # labels_dir_default = 'data/datasets/VOCdevkit/VOC2012/SegmentationClass/'
-    # trainset_augmented_filename_default = 'data/datasets/SBD/train_noval.txt'
-    # images_augmented_dir_default = 'data/datasets/SBD/benchmark_RELEASE/dataset/img/'
-    # labels_augmented_dir_default = 'data/datasets/SBD/benchmark_RELEASE/dataset/cls/'
     model_dir_default = 'data/models/deeplab/{}_cs/'.format(network_backbone_default)
     log_dir_default = 'data/logs/deeplab/'
     random_seed_default = 0
 
     parser.add_argument('--network_backbone', type=str, help='Network backbones: resnet_50, resnet_101, mobilenet_1.0_224. Default: resnet_101', default=network_backbone_default)
     parser.add_argument('--pre_trained_model', type=str, help='Pretrained model directory', default=pre_trained_model_default)
-    # parser.add_argument('--trainset_filename', type=str, help='Train dataset filename', default=trainset_filename_default)
-    # parser.add_argument('--valset_filename', type=str, help='Validation dataset filename', default=valset_filename_default)
-    # parser.add_argument('--images_dir', type=str, help='Images directory', default=images_dir_default)
-    # parser.add_argument('--labels_dir', type=str, help='Labels directory', default=labels_dir_default)
-    # parser.add_argument('--trainset_augmented_filename', type=str, help='Train augmented dataset filename', default=trainset_augmented_filename_default)
-    # parser.add_argument('--images_augmented_dir', type=str, help='Images augmented directory', default=images_augmented_dir_default)
-    # parser.add_argument('--labels_augmented_dir', type=str, help='Labels augmented directory', default=labels_augmented_dir_default)
     parser.add_argument('--model_dir', type=str, help='Trained model saving directory', default=model_dir_default)
     parser.add_argument('--log_dir', type=str, help='TensorBoard log directory', default=log_dir_default)
     parser.add_argument('--random_seed', type=int, help='Random seed for model training.', default=random_seed_default)
@@ -147,13 +133,6 @@ if __name__ == '__main__':
     argv = parser.parse_args()
     network_backbone = argv.network_backbone
     pre_trained_model = argv.pre_trained_model
-    # trainset_filename = argv.trainset_filename
-    # valset_filename = argv.valset_filename
-    # images_dir = argv.images_dir
-    # labels_dir = argv.labels_dir
-    # trainset_augmented_filename = argv.trainset_augmented_filename
-    # images_augmented_dir = argv.images_augmented_dir
-    # labels_augmented_dir = argv.labels_augmented_dir
     model_dir = argv.model_dir
     log_dir = argv.log_dir
     random_seed = argv.random_seed
