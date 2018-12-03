@@ -16,7 +16,7 @@ class DeepLab(object):
         self.batch_norm_momentum = batch_norm_momentum
 
         self.imgs = tf.placeholder(tf.float32, shape=[None, None, None, 3], name='imgs')
-        self.lbls = tf.placeholder(tf.uint8, shape=[None, None, None, 1], name='lbls')
+        self.lbls = tf.placeholder(tf.uint8, shape=[None, None, None], name='lbls')
         self.is_training = tf.placeholder(tf.bool, name='is_training')
         self.target_size = tf.placeholder(tf.int32, shape=[2], name='target_size')
         self.weight_decay = tf.placeholder(tf.float32, name='weight_decay')
@@ -25,7 +25,7 @@ class DeepLab(object):
         self.build_model(base_architecture)
         if pre_trained_model:
             self.initialize_backbone_from_pretrained_weights(pre_trained_model)
-        self.lr = tf.train.exponential_decay(learning_rate, tf.train.create_global_step(), 3000, 0.7)
+        self.lr = tf.train.exponential_decay(learning_rate, tf.train.create_global_step(), 3000, 0.8)
         self.build_optimizer()
 
         now = datetime.now()

@@ -7,7 +7,7 @@ from tqdm import tqdm
 import cv2
 import tensorflow as tf
 from model import DeepLab
-from prepare_data import read_cs_tfrecords
+from process_cs_data import compute_img_means, read_cs_tfrecords
 from utils import (count_label_prediction_matches, fetch_batch,
                    mean_intersection_over_union, multiscale_validate,
                    validation_demo)
@@ -30,7 +30,6 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
     if not os.path.isdir(log_dir):
         os.makedirs(log_dir)
 
-    channel_means = np.load('data/datasets/cityscapes/channel_means.npz')['channel_means']
     trainset = read_cs_tfrecords(['train', 'train_extra']).shuffle(3000).batch(batch_size)
     train_it = trainset.make_initializable_iterator()
     train_init = train_it.initializer
@@ -40,6 +39,7 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
     val_init = val_it.initializer
     val_data = val_it.get_next()
     model = DeepLab(base_architecture=network_backbone, n_classes=n_classes, ignore_label=ignore_label, learning_rate=learning_rate, weight_decay=weight_decay, batch_norm_momentum=batch_norm_decay, pre_trained_model=pre_trained_model, log_dir=log_dir)
+    img_means = compute_img_means()
 
     trainset_size = 0
     track_trainset_size = True
@@ -56,14 +56,14 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
         model.sess.run(val_init)
         while True:
             try:
-                imgs, lbls = fetch_batch(model.sess.run(val_data), channel_means)
+                imgs, lbls = fetch_batch(model.sess.run(val_data), img_means)
                 logits, val_loss = multiscale_validate(model.validate, imgs, lbls, scales)
                 val_loss_total += val_loss
                 predictions = np.argmax(logits, axis=-1)
-                num_pixels_union, num_pixels_intersection = count_label_prediction_matches(labels=np.squeeze(lbls, axis=-1), predictions=predictions, num_classes=n_classes, ignore_label=ignore_label)
+                num_pixels_union, num_pixels_intersection = count_label_prediction_matches(labels=lbls, predictions=predictions, num_classes=n_classes, ignore_label=ignore_label)
                 num_pixels_union_total += num_pixels_union
                 num_pixels_intersection_total += num_pixels_intersection
-                # validation_demo(images=imgs, labels=np.squeeze(lbls, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'validation_demo'), batch_no=p_bar.n)
+                # validation_demo(images=imgs, labels=lbls, predictions=predictions, demo_dir=os.path.join(results_dir, 'validation_demo'), batch_no=p_bar.n)
                 if track_valset_size:
                     valset_size += 1
                 p_bar.update()
@@ -90,14 +90,14 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
         model.sess.run(train_init)
         while True:
             try:
-                imgs, lbls = fetch_batch(model.sess.run(train_data), channel_means, augment=True, min_scale_factor=0.25, max_scale_factor=1.0)
+                imgs, lbls = fetch_batch(model.sess.run(train_data), img_means, augment=True, min_scale_factor=0.25, max_scale_factor=1.0)
                 logits, train_loss = model.train(imgs, lbls)
                 train_loss_total += train_loss
                 predictions = np.argmax(logits, axis=-1)
-                num_pixels_union, num_pixels_intersection = count_label_prediction_matches(labels=np.squeeze(lbls, axis=-1), predictions=predictions, num_classes=n_classes, ignore_label=ignore_label)
+                num_pixels_union, num_pixels_intersection = count_label_prediction_matches(labels=lbls, predictions=predictions, num_classes=n_classes, ignore_label=ignore_label)
                 num_pixels_union_total += num_pixels_union
                 num_pixels_intersection_total += num_pixels_intersection
-                # validation_demo(images=imgs, labels=np.squeeze(lbls, axis=-1), predictions=predictions, demo_dir=os.path.join(results_dir, 'training_demo'), batch_no=p_bar.n)
+                # validation_demo(images=imgs, labels=lbls, predictions=predictions, demo_dir=os.path.join(results_dir, 'training_demo'), batch_no=p_bar.n)
                 if track_trainset_size:
                     trainset_size += 1
                 p_bar.update()

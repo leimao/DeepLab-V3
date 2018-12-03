@@ -79,8 +79,8 @@ labels = [
     Label('license plate', -1, -1, 'vehicle', 7, False, True, (0, 0, 142)),
 ]
 
-id2trainId = np.vectorize({label.id: label.trainId for label in labels}.get)
-trainId2color = np.vectorize({label.trainId: label.color for label in reversed(labels)}.get)
+id2trainId = np.vectorize({label.id: np.uint8(label.trainId) for label in labels}.get)
+trainId2color = np.vectorize({label.trainId: tuple(np.uint8(label.color)) for label in reversed(labels)}.get)
 
 
 def colormap(lbls):
@@ -195,26 +195,22 @@ def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale
     # Flip image and label
     if np.random.random() < 0.5:
         image, label = flip_image_and_label(image=image, label=label)
-    label = np.expand_dims(label, axis=2)
 
     return image, label
 
 
-def preprocess_data(img_path, lbl_path, channel_means, get_lbl, augment, output_size, min_scale_factor, max_scale_factor):
-    img = cv2.imread(img_path.decode())
-    img = img - channel_means
+def preprocess_data(img_path, lbl_path, img_means, get_lbl, augment, output_size, min_scale_factor, max_scale_factor):
+    img = cv2.imread(img_path.decode()) - img_means
     if get_lbl:
-        lbl = cv2.imread(lbl_path.decode())[..., 0, None]
-        lbl = id2trainId(lbl)
-    if augment:
-        img, lbl = image_augmentaion(img, lbl, output_size, min_scale_factor=min_scale_factor, max_scale_factor=max_scale_factor)
-    if get_lbl:
+        lbl = cv2.imread(lbl_path.decode(), cv2.IMREAD_UNCHANGED)
+        if augment:
+            img, lbl = image_augmentaion(img, lbl, output_size, min_scale_factor=min_scale_factor, max_scale_factor=max_scale_factor)
         return img, lbl
     return img
 
 
-def fetch_batch(paths, channel_means, get_lbl=True, augment=False, output_size=(513, 513), min_scale_factor=0.5, max_scale_factor=2.0):
-    data = zip(*[preprocess_data(*path_pair, channel_means, get_lbl, augment, output_size, min_scale_factor, max_scale_factor) for path_pair in zip(*paths)])
+def fetch_batch(paths, img_means, get_lbl=True, augment=False, output_size=(513, 513), min_scale_factor=0.5, max_scale_factor=2.0):
+    data = zip(*[preprocess_data(*path_pair, img_means, get_lbl, augment, output_size, min_scale_factor, max_scale_factor) for path_pair in zip(*paths)])
     if get_lbl:
         imgs, lbls = data
         return np.asarray(imgs), np.asarray(lbls)
@@ -289,10 +285,10 @@ def save_annotation(label, filename, add_colormap=True):
     add_colormap: Add color map to the label or not.
     colormap_type: Colormap type for visualization.
     '''
+
     # Add colormap for visualizing the prediction.
     if add_colormap:
         label = label_to_color_image(label)
-
     image = Image.fromarray(label.astype(dtype=np.uint8))
     image.save(filename)
 
@@ -310,7 +306,7 @@ def validation_demo(images, labels, predictions, demo_dir, batch_no):
         os.makedirs(demo_dir)
 
     for i in range(len(images)):
-        cv2.imwrite(os.path.join(demo_dir, 'image_{}_{}.jpg'.format(batch_no, i)), images[i])
+        cv2.imwrite(os.path.join(demo_dir, 'image_{}_{}.png'.format(batch_no, i)), images[i])
         if has_lbls:
             save_annotation(label=labels[i], filename=os.path.join(demo_dir, 'image_{}_{}_label.png'.format(batch_no, i)), add_colormap=True)
         save_annotation(label=predictions[i], filename=os.path.join(demo_dir, 'image_{}_{}_prediction.png'.format(batch_no, i)), add_colormap=True)
@@ -383,7 +379,3 @@ def multiscale_validate(validator, imgs, lbls, scales):
     logits_mean = np.mean(multiscale_logits, axis=0)
     loss_mean = np.mean(multiscale_loss)
     return logits_mean, loss_mean
-
-
-# def learning_rate_policy(iteration, max_iteration, power = 0.9):
-#     return (1 - iteration / max_iteration) ** power
