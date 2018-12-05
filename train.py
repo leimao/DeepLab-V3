@@ -13,6 +13,43 @@ from utils import (count_label_prediction_matches, fetch_batch,
                    validation_demo)
 
 
+def validate(model, val_init, val_data, n_classes, img_means, scales, ignore_lbl, batch_size, valset_size=0, track_valset_size=True, best_mIoU=0):
+    val_loss_total = 0
+    num_pixels_union_total = np.zeros(n_classes)
+    num_pixels_intersection_total = np.zeros(n_classes)
+    p_bar = tqdm(desc='Validating...', total=None if track_valset_size else valset_size, unit_scale=True)
+    model.sess.run(val_init)
+    while True:
+        try:
+            imgs, lbls = fetch_batch(model.sess.run(val_data), img_means)
+            logits, val_loss = multiscale_validate(model.validate, imgs, lbls, scales)
+            val_loss_total += val_loss
+            predictions = np.argmax(logits, axis=-1)
+            num_pixels_union, num_pixels_intersection = count_label_prediction_matches(labels=lbls, predictions=predictions, num_classes=n_classes, ignore_label=ignore_lbl)
+            num_pixels_union_total += num_pixels_union
+            num_pixels_intersection_total += num_pixels_intersection
+            # validation_demo(images=imgs, labels=lbls, predictions=predictions, demo_dir=os.path.join(results_dir, 'validation_demo'), batch_no=p_bar.n)
+            if track_valset_size:
+                valset_size += 1
+            p_bar.update()
+        except tf.errors.OutOfRangeError:
+            if track_valset_size:
+                track_valset_size = False
+            p_bar.close()
+            break
+
+    mean_IOU = mean_intersection_over_union(num_pixels_union=num_pixels_union_total, num_pixels_intersection=num_pixels_intersection_total)
+    val_loss_ave = val_loss_total / valset_size / batch_size
+    print('Validation loss: {:.4f} | mIoU: {:.4f}'.format(val_loss_ave, mean_IOU))
+    if mean_IOU > best_mIoU:
+        best_mIoU = mean_IOU
+        model_savename = '{}_{:.4f}.ckpt'.format(network_backbone, best_mIoU)
+        print('New best mIoU achieved, model saved as {}.'.format(model_savename))
+        model.save(model_dir, model_savename)
+
+    return valset_size, best_mIoU
+
+
 def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='data/logs/deeplab/'):
     if not model_dir:
         model_dir = 'data/models/deeplab/{}_cs/'.format(network_backbone)
@@ -43,46 +80,10 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
 
     trainset_size = 0
     track_trainset_size = True
-    valset_size = 0
-    track_valset_size = True
-    best_mIoU = 0
+    valset_size, best_mIoU = validate(model, val_init, val_data, n_classes, img_means, scales, ignore_label, batch_size)
 
     for i in range(n_epochs):
-        print('Epoch number: {}'.format(i))
-        val_loss_total = 0
-        num_pixels_union_total = np.zeros(n_classes)
-        num_pixels_intersection_total = np.zeros(n_classes)
-        p_bar = tqdm(desc='Validating...', total=None if track_valset_size else valset_size, unit_scale=True)
-        model.sess.run(val_init)
-        while True:
-            try:
-                imgs, lbls = fetch_batch(model.sess.run(val_data), img_means)
-                logits, val_loss = multiscale_validate(model.validate, imgs, lbls, scales)
-                val_loss_total += val_loss
-                predictions = np.argmax(logits, axis=-1)
-                num_pixels_union, num_pixels_intersection = count_label_prediction_matches(labels=lbls, predictions=predictions, num_classes=n_classes, ignore_label=ignore_label)
-                num_pixels_union_total += num_pixels_union
-                num_pixels_intersection_total += num_pixels_intersection
-                # validation_demo(images=imgs, labels=lbls, predictions=predictions, demo_dir=os.path.join(results_dir, 'validation_demo'), batch_no=p_bar.n)
-                if track_valset_size:
-                    valset_size += 1
-                p_bar.update()
-            except tf.errors.OutOfRangeError:
-                if track_valset_size:
-                    track_valset_size = False
-                p_bar.close()
-                break
-
-        mean_IOU = mean_intersection_over_union(num_pixels_union=num_pixels_union_total, num_pixels_intersection=num_pixels_intersection_total)
-        val_loss_ave = val_loss_total / valset_size / batch_size
-        print('Validation loss: {:.4f} | mIoU: {:.4f}'.format(val_loss_ave, mean_IOU))
-
-        if mean_IOU > best_mIoU:
-            best_mIoU = mean_IOU
-            model_savename = '{}_{:.4f}.ckpt'.format(network_backbone, best_mIoU)
-            print('New best mIoU achieved, model saved as {}.'.format(model_savename))
-            model.save(model_dir, model_savename)
-
+        print('Epoch number: {}'.format(i + 1))
         train_loss_total = 0
         num_pixels_union_total = np.zeros(n_classes)
         num_pixels_intersection_total = np.zeros(n_classes)
@@ -111,6 +112,7 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
         mIoU = mean_intersection_over_union(num_pixels_union=num_pixels_union_total, num_pixels_intersection=num_pixels_intersection_total)
         train_loss_ave = train_loss_total / trainset_size / batch_size
         print('Training loss: {:.4f} | mIoU: {:.4f}'.format(train_loss_ave, mIoU))
+        _, best_mIoU = validate(model, val_init, val_data, n_classes, img_means, scales, ignore_label, batch_size, valset_size=valset_size, track_valset_size=False, best_mIoU=best_mIoU)
 
     model.close()
 

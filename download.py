@@ -42,7 +42,7 @@ def download_cityscapes(downloads_dir='data/downloads/cityscapes/', data_dir='da
     curl -b cs_cookies -JLO https://www.cityscapes-dataset.com/file-handling/?packageID=1
     '''
 
-    urls = ['https://www.cityscapes-dataset.com/file-handling/?packageID={}'.format(id) for id in [1, 2, 3, 4, 10, 11]]
+    urls = ['https://www.cityscapes-dataset.com/file-handling/?packageID={}'.format(id) for id in [1, 2, 3, 4, 10, 11, 12]]
     login_dict = {'url': 'https://www.cityscapes-dataset.com/login/', 'payload': {'username': 'StArchon', 'password': 'eUpMJjMW4mbEUjZ', 'submit': 'Login'}}
     filepaths = download(urls, downloads_dir, login_dict=login_dict, force=force)
     for filepath in filepaths:
