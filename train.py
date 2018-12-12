@@ -75,7 +75,8 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
     val_it = valset.make_initializable_iterator()
     val_init = val_it.initializer
     val_data = val_it.get_next()
-    model = DeepLab(compute_img_means(), base_architecture=network_backbone, n_classes=n_classes, ignore_label=ignore_label, learning_rate=learning_rate, weight_decay=weight_decay, batch_norm_momentum=batch_norm_decay, pre_trained_model=pre_trained_model, log_dir=log_dir)
+    img_means = compute_img_means()
+    model = DeepLab(img_means, base_architecture=network_backbone, n_classes=n_classes, ignore_label=ignore_label, learning_rate=learning_rate, weight_decay=weight_decay, batch_norm_momentum=batch_norm_decay, pre_trained_model=pre_trained_model, log_dir=log_dir)
 
     trainset_size = 0
     track_trainset_size = True
@@ -90,7 +91,7 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
         model.sess.run(train_init)
         while True:
             try:
-                imgs, lbls = fetch_batch(model.sess.run(train_data), augment=True, min_scale_factor=0.25, max_scale_factor=1.0)
+                imgs, lbls = fetch_batch(model.sess.run(train_data), augment=True, min_scale_factor=0.25, max_scale_factor=1.0, img_means=img_means)
                 logits, train_loss = model.train(imgs, lbls)
                 train_loss_total += train_loss
                 predictions = np.argmax(logits, axis=-1)

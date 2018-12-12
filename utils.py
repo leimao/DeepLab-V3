@@ -126,7 +126,7 @@ def resize_image_and_label(image, label, output_size):
     return image_resized, label_resized
 
 
-def pad_image_and_label(image, label, top, bottom, left, right, pixel_value=0, label_value=255):
+def pad_image_and_label(image, label, top, bottom, left, right, pixel_value, label_value):
     '''
     https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_core/py_basic_ops/py_basic_ops.html#making-borders-for-images-padding
     '''
@@ -155,7 +155,7 @@ def flip_image_and_label(image, label):
     return image_flipped, label_flipped
 
 
-def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale_factor=2.0):
+def image_augmentaion(image, label, output_size, min_scale_factor, max_scale_factor, img_means, ignore_lbl):
     original_height = image.shape[0]
     original_width = image.shape[1]
     target_height = output_size[0]
@@ -188,27 +188,27 @@ def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale
     horizonal_pad_left = horizonal_pad // 2
     horizonal_pad_right = horizonal_pad - horizonal_pad_left
 
-    image, label = pad_image_and_label(image=image, label=label, top=vertical_pad_up, bottom=vertical_pad_down, left=horizonal_pad_left, right=horizonal_pad_right, pixel_value=0, label_value=255)
-    image, label = random_crop(image=image, label=label, output_size=output_size)
+    image, label = pad_image_and_label(image, label, vertical_pad_up, vertical_pad_down, horizonal_pad_left, horizonal_pad_right, img_means, ignore_lbl)
+    image, label = random_crop(image, label, output_size)
     # Flip image and label
     if np.random.random() < 0.5:
-        image, label = flip_image_and_label(image=image, label=label)
+        image, label = flip_image_and_label(image, label)
 
     return image, label
 
 
-def preprocess_data(img_path, lbl_path, get_lbl, augment, output_size, min_scale_factor, max_scale_factor):
-    img = cv2.imread(img_path.decode())
+def preprocess_data(img_path, lbl_path, get_lbl, augment, output_size, min_scale_factor, max_scale_factor, img_means, ignore_lbl):
+    img = cv2.imread(img_path.decode()).astype(np.float32)
     if get_lbl:
         lbl = read_label(lbl_path.decode())
         if augment:
-            img, lbl = image_augmentaion(img, lbl, output_size, min_scale_factor=min_scale_factor, max_scale_factor=max_scale_factor)
+            img, lbl = image_augmentaion(img, lbl, output_size, min_scale_factor, max_scale_factor, img_means, ignore_lbl)
         return img, lbl
     return img
 
 
-def fetch_batch(paths, get_lbl=True, augment=False, output_size=(513, 513), min_scale_factor=0.5, max_scale_factor=2.0):
-    data = zip(*[preprocess_data(*path_pair, get_lbl, augment, output_size, min_scale_factor, max_scale_factor) for path_pair in zip(*paths)])
+def fetch_batch(paths, get_lbl=True, augment=False, output_size=(513, 513), min_scale_factor=0.5, max_scale_factor=2.0, img_means=0, ignore_lbl=255):
+    data = zip(*[preprocess_data(*path_pair, get_lbl, augment, output_size, min_scale_factor, max_scale_factor, img_means, ignore_lbl) for path_pair in zip(*paths)])
     if get_lbl:
         imgs, lbls = data
         return np.asarray(imgs), np.asarray(lbls)
