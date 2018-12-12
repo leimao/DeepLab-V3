@@ -9,13 +9,14 @@ from modules import atrous_spatial_pyramid_pooling
 
 
 class DeepLab(object):
-    def __init__(self, base_architecture='resnet_101', n_classes=21, ignore_label=255, learning_rate=1e-5, weight_decay=5e-4, batch_norm_momentum=0.9997, pre_trained_model=None, log_dir='data/logs/deeplab/'):
+    def __init__(self, img_means, base_architecture='resnet_101', n_classes=21, ignore_label=255, learning_rate=1e-5, weight_decay=5e-4, batch_norm_momentum=0.9997, pre_trained_model=None, log_dir='data/logs/deeplab/'):
         self.n_classes = n_classes
         self.ignore_label = ignore_label
         self.raw_weight_decay = weight_decay
         self.batch_norm_momentum = batch_norm_momentum
 
         self.imgs = tf.placeholder(tf.float32, shape=[None, None, None, 3], name='imgs')
+        self.normalized_imgs = self.imgs - img_means
         self.lbls = tf.placeholder(tf.uint8, shape=[None, None, None], name='lbls')
         self.is_training = tf.placeholder(tf.bool, name='is_training')
         self.target_size = tf.placeholder(tf.int32, shape=[2], name='target_size')
@@ -43,24 +44,22 @@ class DeepLab(object):
     def build_model(self, base_architecture):
         with tf.variable_scope('backbone'):
             if base_architecture == 'vgg16':
-                feature_map = Vgg16(self.imgs, self.regularizer, self.batch_norm_momentum)
+                feature_map = Vgg16(self.normalized_imgs, self.regularizer, self.batch_norm_momentum)
             elif base_architecture.startswith('resnet'):
                 n_layers = int(base_architecture.split('_')[-1])
-                feature_map = Resnet(n_layers, self.imgs, self.weight_decay, self.batch_norm_momentum, self.is_training)
+                feature_map = Resnet(n_layers, self.normalized_imgs, self.weight_decay, self.batch_norm_momentum, self.is_training)
             elif base_architecture.startswith('mobilenet'):
                 depth_multiplier = float(base_architecture.split('_')[-1])
-                feature_map = MobileNet(depth_multiplier, self.imgs, self.weight_decay, self.batch_norm_momentum, self.is_training)
+                feature_map = MobileNet(depth_multiplier, self.normalized_imgs, self.weight_decay, self.batch_norm_momentum, self.is_training)
             else:
                 raise ValueError('Unknown backbone architecture!')
         pools = atrous_spatial_pyramid_pooling(feature_map, regularizer=self.regularizer)
         logits = tf.layers.conv2d(pools, self.n_classes, (1, 1), name='logits')
         self.logits = tf.image.resize_bilinear(logits, self.target_size, name='resized_logits')
-        lbls_linear = tf.reshape(self.lbls, [-1])
-        not_ignore_mask = tf.to_float(tf.not_equal(lbls_linear, self.ignore_label))
-        # The locations represented by indices in indices take value on_value, while all other locations take value off_value.
-        # For example, ignore label 255 in VOC2012 dataset will be set to zero vector in onehot encoding
-        onehot_labels = tf.one_hot(lbls_linear, self.n_classes)
-        self.loss = tf.losses.softmax_cross_entropy(onehot_labels, tf.reshape(self.logits, shape=[-1, self.n_classes]), weights=not_ignore_mask)
+        not_ignore_mask = tf.not_equal(self.lbls, self.ignore_label)
+        # The locations represented by indices in indices take value on_value, while all other locations take value off_value. For example, ignore_label (255) will be set to zero vector with onehot encoding
+        onehot_labels = tf.one_hot(self.lbls, self.n_classes)
+        self.loss = tf.losses.softmax_cross_entropy(onehot_labels, self.logits, weights=not_ignore_mask)
 
     def build_optimizer(self):
         with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
@@ -106,6 +105,6 @@ class DeepLab(object):
 
 
 if __name__ == '__main__':
-    deeplab = DeepLab(pre_trained_model='data/models/pretrained/resnet_101/resnet_v2_101.ckpt')
+    deeplab = DeepLab(np.zeros(3, dtype=np.float32), pre_trained_model='data/models/pretrained/resnet_101/resnet_v2_101.ckpt')
     print('Graph compiled successfully.')
     deeplab.close()

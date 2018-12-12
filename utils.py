@@ -2,7 +2,7 @@ import os
 from collections import namedtuple
 
 import numpy as np
-import scipy.io
+import scipy.io as sio
 
 import cv2
 from PIL import Image
@@ -106,15 +106,13 @@ class RandomStateStack:
         np.random.set_state(self.random_state)
 
 
-# def read_label(label_filename):
-#     if label_filename.endswith('.mat'):
-#         # http://home.bharathh.info/pubs/codes/SBD/download.html
-#         mat = scipy.io.loadmat(label_filename)
-#         label = mat['GTcls']['Segmentation'][0][0]
-#     else:
-#         # Magic function to read VOC2012 semantic labelshttps://github.com/tensorflow/models/blob/master/research/deeplab/datasets/remove_gt_colormap.py#L42
-#         label = np.asarray(Image.open(label_filename))
-#     return label
+def read_label(lbl_path, is_palettised=False):
+    if is_palettised:
+        return np.array(Image.open(lbl_path))
+    if lbl_path.endswith('.mat'):
+        # http://home.bharathh.info/pubs/codes/SBD/download.html
+        return sio.loadmat(lbl_path)['GTcls']['Segmentation'][0][0]
+    return cv2.imread(lbl_path, cv2.IMREAD_UNCHANGED)
 
 
 def resize_image_and_label(image, label, output_size):
@@ -199,18 +197,18 @@ def image_augmentaion(image, label, output_size, min_scale_factor=0.5, max_scale
     return image, label
 
 
-def preprocess_data(img_path, lbl_path, img_means, get_lbl, augment, output_size, min_scale_factor, max_scale_factor):
-    img = cv2.imread(img_path.decode()) - img_means
+def preprocess_data(img_path, lbl_path, get_lbl, augment, output_size, min_scale_factor, max_scale_factor):
+    img = cv2.imread(img_path.decode())
     if get_lbl:
-        lbl = cv2.imread(lbl_path.decode(), cv2.IMREAD_UNCHANGED)
+        lbl = read_label(lbl_path.decode())
         if augment:
             img, lbl = image_augmentaion(img, lbl, output_size, min_scale_factor=min_scale_factor, max_scale_factor=max_scale_factor)
         return img, lbl
     return img
 
 
-def fetch_batch(paths, img_means, get_lbl=True, augment=False, output_size=(513, 513), min_scale_factor=0.5, max_scale_factor=2.0):
-    data = zip(*[preprocess_data(*path_pair, img_means, get_lbl, augment, output_size, min_scale_factor, max_scale_factor) for path_pair in zip(*paths)])
+def fetch_batch(paths, get_lbl=True, augment=False, output_size=(513, 513), min_scale_factor=0.5, max_scale_factor=2.0):
+    data = zip(*[preprocess_data(*path_pair, get_lbl, augment, output_size, min_scale_factor, max_scale_factor) for path_pair in zip(*paths)])
     if get_lbl:
         imgs, lbls = data
         return np.asarray(imgs), np.asarray(lbls)
@@ -289,8 +287,7 @@ def save_annotation(label, filename, add_colormap=True):
     # Add colormap for visualizing the prediction.
     if add_colormap:
         label = label_to_color_image(label)
-    image = Image.fromarray(label.astype(dtype=np.uint8))
-    image.save(filename)
+    cv2.imwrite(filename, label)
 
 
 '''

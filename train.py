@@ -13,7 +13,7 @@ from utils import (count_label_prediction_matches, fetch_batch,
                    validation_demo)
 
 
-def validate(model, val_init, val_data, n_classes, img_means, scales, ignore_lbl, batch_size, valset_size=0, track_valset_size=True, best_mIoU=0):
+def validate(model, val_init, val_data, n_classes, scales, ignore_lbl, batch_size, valset_size=0, track_valset_size=True, best_mIoU=0):
     val_loss_total = 0
     num_pixels_union_total = np.zeros(n_classes)
     num_pixels_intersection_total = np.zeros(n_classes)
@@ -21,7 +21,7 @@ def validate(model, val_init, val_data, n_classes, img_means, scales, ignore_lbl
     model.sess.run(val_init)
     while True:
         try:
-            imgs, lbls = fetch_batch(model.sess.run(val_data), img_means)
+            imgs, lbls = fetch_batch(model.sess.run(val_data))
             logits, val_loss = multiscale_validate(model.validate, imgs, lbls, scales)
             val_loss_total += val_loss
             predictions = np.argmax(logits, axis=-1)
@@ -75,12 +75,11 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
     val_it = valset.make_initializable_iterator()
     val_init = val_it.initializer
     val_data = val_it.get_next()
-    model = DeepLab(base_architecture=network_backbone, n_classes=n_classes, ignore_label=ignore_label, learning_rate=learning_rate, weight_decay=weight_decay, batch_norm_momentum=batch_norm_decay, pre_trained_model=pre_trained_model, log_dir=log_dir)
-    img_means = compute_img_means()
+    model = DeepLab(compute_img_means(), base_architecture=network_backbone, n_classes=n_classes, ignore_label=ignore_label, learning_rate=learning_rate, weight_decay=weight_decay, batch_norm_momentum=batch_norm_decay, pre_trained_model=pre_trained_model, log_dir=log_dir)
 
     trainset_size = 0
     track_trainset_size = True
-    valset_size, best_mIoU = validate(model, val_init, val_data, n_classes, img_means, scales, ignore_label, batch_size)
+    valset_size, best_mIoU = validate(model, val_init, val_data, n_classes, scales, ignore_label, batch_size)
 
     for i in range(n_epochs):
         print('Epoch number: {}'.format(i + 1))
@@ -91,7 +90,7 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
         model.sess.run(train_init)
         while True:
             try:
-                imgs, lbls = fetch_batch(model.sess.run(train_data), img_means, augment=True, min_scale_factor=0.25, max_scale_factor=1.0)
+                imgs, lbls = fetch_batch(model.sess.run(train_data), augment=True, min_scale_factor=0.25, max_scale_factor=1.0)
                 logits, train_loss = model.train(imgs, lbls)
                 train_loss_total += train_loss
                 predictions = np.argmax(logits, axis=-1)
@@ -112,7 +111,7 @@ def train(network_backbone, pre_trained_model=None, model_dir=None, log_dir='dat
         mIoU = mean_intersection_over_union(num_pixels_union=num_pixels_union_total, num_pixels_intersection=num_pixels_intersection_total)
         train_loss_ave = train_loss_total / trainset_size / batch_size
         print('Training loss: {:.4f} | mIoU: {:.4f}'.format(train_loss_ave, mIoU))
-        _, best_mIoU = validate(model, val_init, val_data, n_classes, img_means, scales, ignore_label, batch_size, valset_size=valset_size, track_valset_size=False, best_mIoU=best_mIoU)
+        _, best_mIoU = validate(model, val_init, val_data, n_classes, scales, ignore_label, batch_size, valset_size=valset_size, track_valset_size=False, best_mIoU=best_mIoU)
 
     model.close()
 
