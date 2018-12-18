@@ -23,17 +23,17 @@ class DeepLab(object):
         self.weight_decay = tf.placeholder(tf.float32, name='weight_decay')
         self.regularizer = tf.contrib.layers.l2_regularizer(self.weight_decay)
 
+        self.lr = tf.train.exponential_decay(learning_rate, tf.train.create_global_step(), 2000, 0.9)
         self.build_model(base_architecture)
         if pre_trained_model:
             self.initialize_backbone_from_pretrained_weights(pre_trained_model)
-        self.lr = tf.train.exponential_decay(learning_rate, tf.train.create_global_step(), 3000, 0.8)
         self.build_optimizer()
 
         now = datetime.now()
-        self.log_dir = os.path.join(log_dir, now.strftime('%Y%m%d-%H%M%S'))
+        self.log_dir = os.path.join(log_dir, now.strftime('%y%m%d-%H%M'))
         self.writer = tf.summary.FileWriter(self.log_dir, tf.get_default_graph())
-        self.summary()
-        self.val_step = tf.get_variable('val_step', initializer=tf.constant(0))
+        self.build_summary()
+        self.val_step = tf.get_variable('val_step', initializer=0)
         self.inc_val_step = tf.assign_add(self.val_step, 1)
         self.saver = tf.train.Saver()
         # NUM_THREADS = int(os.environ['OMP_NUM_THREADS'])
@@ -65,31 +65,30 @@ class DeepLab(object):
         with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
             self.optimizer = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss, global_step=tf.train.get_global_step())
 
-    def summary(self):
+    def build_summary(self):
         with tf.name_scope('loss'):
-            self.train_summaries = tf.summary.scalar('train', self.loss)
-            self.val_summaries = tf.summary.scalar('val', self.loss)
+            self.train_summ = tf.summary.scalar('train', self.loss)
+            self.val_summ = tf.summary.scalar('val', self.loss)
 
     def train(self, imgs, lbls, target_size=None):
-        _, logits, loss, summaries, train_step = self.sess.run([self.optimizer, self.logits, self.loss, self.train_summaries, tf.train.get_global_step()], feed_dict={self.imgs: imgs, self.lbls: lbls, self.target_size: target_size if target_size else imgs.shape[1:3], self.weight_decay: self.raw_weight_decay * np.mean(lbls != self.ignore_label), self.is_training: True})
-        self.writer.add_summary(summaries, train_step)
+        _, logits, loss, summ = self.sess.run([self.optimizer, self.logits, self.loss, self.train_summ], feed_dict={self.imgs: imgs, self.lbls: lbls, self.target_size: target_size if target_size else imgs.shape[1:3], self.weight_decay: self.raw_weight_decay * np.mean(lbls != self.ignore_label), self.is_training: True})
+        self.writer.add_summary(summ, self.sess.run(tf.train.get_global_step()))
         return logits, loss
 
     def validate(self, imgs, lbls, target_size=None):
-        logits, loss, summaries, val_step = self.sess.run([self.logits, self.loss, self.val_summaries, self.inc_val_step], feed_dict={self.imgs: imgs, self.lbls: lbls, self.target_size: target_size if target_size else imgs.shape[1:3], self.is_training: False})
-        self.writer.add_summary(summaries, val_step)
+        logits, loss, summ, val_step = self.sess.run([self.logits, self.loss, self.val_summ, self.inc_val_step], feed_dict={self.imgs: imgs, self.lbls: lbls, self.target_size: target_size if target_size else imgs.shape[1:3], self.is_training: False})
+        self.writer.add_summary(summ, val_step)
         return logits, loss
 
     def test(self, imgs, target_size=None):
         logits = self.sess.run(self.logits, feed_dict={self.imgs: imgs, self.target_size: target_size if target_size else imgs.shape[1:3], self.is_training: False})
         return logits
 
-    def save(self, directory, filename):
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
-        filepath = os.path.join(directory, filename)
+    def save(self, filepath):
+        dirname = os.path.dirname(filepath)
+        if not os.path.isdir(dirname):
+            os.makedirs(dirname)
         self.saver.save(self.sess, filepath)
-        return filepath
 
     def load(self, filepath):
         self.saver.restore(self.sess, filepath)

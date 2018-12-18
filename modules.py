@@ -33,5 +33,4 @@ def atrous_spatial_pyramid_pooling(inputs, filters=256, regularizer=None):
     # Merge Poolings
     outputs = tf.concat(values=[aspp1x1, aspp3x3_1, aspp3x3_2, aspp3x3_3, image_feature], axis=3, name='aspp_pools')
     outputs = tf.layers.conv2d(outputs, filters, (1, 1), padding='same', kernel_regularizer=regularizer, name='aspp_outputs')
-
     return outputs
