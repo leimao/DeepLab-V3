@@ -172,6 +172,6 @@ if __name__ == '__main__':
     print('Downloading datasets...')
     download_voc2012(downloads_dir=downloads_dir, data_dir=data_dir, force=force)
     download_sbd(downloads_dir=downloads_dir, data_dir=os.path.join(data_dir, 'SBD'), force=force)
-    download_cityscapes(downloads_dir=os.path.join(downloads_dir, 'cityscapes/'), data_dir=os.path.join(data_dir, 'cityscapes'), force=force)
+    #download_cityscapes(downloads_dir=os.path.join(downloads_dir, 'cityscapes/'), data_dir=os.path.join(data_dir, 'cityscapes'), force=force)
     print('Downloading pre-trained models...')
     download_pretrained_models(models=pretrained_models, downloads_dir=downloads_dir, model_dir=pretrained_models_dir, force=force)
