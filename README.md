@@ -40,6 +40,21 @@ The `nets` directory contains network definition files that are directly copied 
 
 ## Usages
 
+### Install Dependencies
+
+To install dependencies, please run the following command to install everything required automatically:
+
+```bash
+$ chmod +x install_dependencies.sh
+$ install_dependencies.sh
+```
+If found permission problems, please run the following command instead:
+
+```bash
+$ chmod +x install_dependencies.sh
+$ sudo install_dependencies.sh
+```
+
 ### Download Dataset
 
 Download and extract VOC2012 dataset, SBD dataset, and pretrained models to designated directories.
