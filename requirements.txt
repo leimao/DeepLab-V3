@@ -1,0 +1,6 @@
+tensorflow-gpu
+opencv-python
+tqdm
+pillow
+joblib
+requests
