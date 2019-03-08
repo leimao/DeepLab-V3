@@ -46,13 +46,13 @@ To install dependencies, please run the following command to install everything 
 
 ```bash
 $ chmod +x install_dependencies.sh
-$ install_dependencies.sh
+$ ./install_dependencies.sh
 ```
 If found permission problems, please run the following command instead:
 
 ```bash
 $ chmod +x install_dependencies.sh
-$ sudo install_dependencies.sh
+$ sudo ./install_dependencies.sh
 ```
 
 ### Download Dataset
