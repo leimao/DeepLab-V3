@@ -4,3 +4,4 @@ tqdm
 pillow
 joblib
 requests
+scipy
