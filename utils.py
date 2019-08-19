@@ -218,7 +218,7 @@ def resize_image_and_label(image, label, output_size):
 
 def pad_image_and_label(image, label, top, bottom, left, right, pixel_value=0, label_value=255):
     '''
-    https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_core/py_basic_ops/py_basic_ops.html#making-borders-for-images-padding
+    https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_core/py_basic_ops/py_basic_ops.html # making-borders-for-images-padding
     '''
 
     image_padded = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pixel_value)
