@@ -172,7 +172,7 @@ Image| Label | Prediction |
 :-------------------------:|:-------------------------:|:-------------------------:
 ![](data/demos/deeplab/resnet_101_voc2012/image_3.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_label.png) |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_prediction.png)
 
-Running demo on your own images:
+## Running demo on your own images:<br>
 Just put some JPG images into demo_dir and run the script test_any_image.py
 Results will be written into same folder.
 Make sure that proper model trained and a checkpoint is saved in models_dir
