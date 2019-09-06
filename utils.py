@@ -1,5 +1,6 @@
 
 import os
+import sys
 import time
 
 import numpy as np
@@ -168,14 +169,18 @@ class Iterator(object):
 
 
 def read_image(image_filename):
-
+    if (not os.path.isfile(image_filename)):
+        print("Can't open file-",image_filename)
+        sys.exit()
     image = cv2.imread(image_filename)
 
     return image
 
 
 def read_label(label_filename):
-
+    if (not os.path.isfile(label_filename)):
+        print("Can't open file-",label_filename)
+        sys.exit()
     if label_filename.endswith('.mat'):
         # http://home.bharathh.info/pubs/codes/SBD/download.html
         mat = scipy.io.loadmat(label_filename)
@@ -422,6 +427,11 @@ def validation_single_demo(image, label, prediction, demo_dir, val_no):
     save_annotation(label=label, filename=os.path.join(demo_dir, 'image_{}_label.png'.format(val_no)), add_colormap=True)
     save_annotation(label=prediction, filename=os.path.join(demo_dir, 'image_{}_prediction.png'.format(val_no)), add_colormap=True)
 
+def single_demo(image, prediction, demo_dir, val_no):
+    if not os.path.exists(demo_dir):
+        os.makedirs(demo_dir)
+    cv2.imwrite(os.path.join(demo_dir, 'image_{}.jpg'.format(val_no)), image)
+    save_annotation(label=prediction, filename=os.path.join(demo_dir, 'image_{}_prediction.png'.format(val_no)), add_colormap=True)
 
 def count_label_prediction_matches(labels, predictions, num_classes, ignore_label):
     '''

@@ -32,6 +32,7 @@ DeepLab is a series of image semantic segmentation models, whose latest version,
 ├── nets
 ├── README.md
 ├── test_demo.py
+├── test_any_image.py
 ├── train.py
 └── utils.py
 ```
@@ -171,6 +172,12 @@ Image| Label | Prediction |
 :-------------------------:|:-------------------------:|:-------------------------:
 ![](data/demos/deeplab/resnet_101_voc2012/image_3.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_label.png) |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_prediction.png)
 
+## Running demo on your own images:<br>
+Just put some JPG images into demo_dir and run the script test_any_image.py
+Results will be written into same folder.
+Make sure that proper model trained and a checkpoint is saved in models_dir
+See the script for details.
+
 ## References
 
 L.-C. Chen, G. Papandreou, I. Kokkinos, K. Murphy, and A. L. Yuille. [Deeplab: Semantic Image Segmentation with Deep Convolutional Nets, Atrous Convolution, and Fully Connected CRFs](https://arxiv.org/abs/1606.00915). TPAMI, 2017.
@@ -181,4 +188,4 @@ L.-C. Chen, Y. Zhu, G. Papandreou, F. Schroff, H. Adam. [Encoder-Decoder with At
 
 ## To-Do List
 
-- [ ] Test script for new arbitrary test images.
+- [x] Test script for new arbitrary test images.
