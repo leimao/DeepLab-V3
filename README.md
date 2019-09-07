@@ -8,7 +8,7 @@ Toyota Technological Institute at Chicago
 
 ## Introduction
 
-DeepLab is a series of image semantic segmentation models, whose latest version, i.e. v3+, proves to be the state-of-art. Its major contribution is the use of atrous spatial pyramid pooling (ASPP) operation at the end of the encoder. While the model works extremely well, its open sourced code is hard to read (at least from my personal perspective). Here we reimplemented DeepLab v3, the earlier version of v3+ (which only additionally employs the decoder architecture), in a much simpler and understandable way.
+DeepLab is a series of image semantic segmentation models, whose latest version, i.e. v3+, proves to be the state-of-art. Its major contribution is the use of atrous spatial pyramid pooling (ASPP) operation at the end of the encoder. While the model works extremely well, its open source code is hard to read (at least from my personal perspective). Here we re-implemented DeepLab v3, the earlier version of v3+ (which only additionally employs the decoder architecture), in a much simpler and more understandable way.
 
 ## Dependencies
 
@@ -172,11 +172,16 @@ Image| Label | Prediction |
 :-------------------------:|:-------------------------:|:-------------------------:
 ![](data/demos/deeplab/resnet_101_voc2012/image_3.jpg)  |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_label.png) |  ![](data/demos/deeplab/resnet_101_voc2012/image_3_prediction.png)
 
-## Running demo on your own images:<br>
-Just put some JPG images into demo_dir and run the script test_any_image.py
-Results will be written into same folder.
-Make sure that proper model trained and a checkpoint is saved in models_dir
-See the script for details.
+## Custom Demo
+
+Just put some JPG-format images into `demo_dir` and run the following command in the terminal.
+
+```bash
+$ python test_any_image.py
+```
+Results will be written into same folder. Make sure that proper model trained and a checkpoint is saved in `models_dir`. See the script for details.
+
+Contributed by [pinaxe1](https://github.com/leimao/DeepLab_v3/pull/7). Will modify to accept arguments and multiple image formats.
 
 ## References
 
