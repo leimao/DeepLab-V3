@@ -32,7 +32,7 @@ DeepLab is a series of image semantic segmentation models, whose latest version,
 ├── nets
 ├── README.md
 ├── test_demo.py
-├── test_any_image.py
+├── test_demo_any.py
 ├── train.py
 └── utils.py
 ```
@@ -177,7 +177,7 @@ Image| Label | Prediction |
 Just put some JPG-format images into `demo_dir` and run the following command in the terminal.
 
 ```bash
-$ python test_any_image.py
+$ python test_demo_any.py
 ```
 Results will be written into same folder. Make sure that proper model trained and a checkpoint is saved in `models_dir`. See the script for details.
 
