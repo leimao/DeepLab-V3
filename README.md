@@ -33,6 +33,7 @@ DeepLab is a series of image semantic segmentation models, whose latest version,
 ├── README.md
 ├── test_demo.py
 ├── test_demo_any.py
+├── test_demo_cam.py
 ├── train.py
 └── utils.py
 ```
@@ -182,6 +183,13 @@ $ python test_demo_any.py
 Results will be written into same folder. Make sure that proper model trained and a checkpoint is saved in `models_dir`. See the script for details.
 
 Contributed by [pinaxe1](https://github.com/leimao/DeepLab_v3/pull/7). Will modify to accept arguments and multiple image formats.
+
+## Camera Demo
+
+The script `test_demo_cam.py` does inference (semantic segmentation) on videostream from a camera.
+Make sure you have trained model and set an existing checkpoint filename as a model_filename.
+Just run the script and watch output in cv2.namedWindow.
+To stop the script press the "q" button.
 
 ## References
 
