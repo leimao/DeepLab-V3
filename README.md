@@ -188,7 +188,7 @@ Contributed by [pinaxe1](https://github.com/leimao/DeepLab_v3/pull/7). Will modi
 
 The script `test_demo_cam.py` does inference (semantic segmentation) on videostream from a camera.
 Make sure you have trained model and set an existing checkpoint filename as a model_filename.
-Just run the script and watch output in cv2.namedWindow.
+Then run the script and watch output in cv2.namedWindow.
 To stop the script press the "q" button.
 
 ## References
