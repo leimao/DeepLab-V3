@@ -146,7 +146,7 @@ def train(network_backbone, pre_trained_model=None, trainset_filename='data/data
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Train DeepLab v3 for image semantic segmantation.')
+    parser = argparse.ArgumentParser(description='Train DeepLab V3 for image semantic segmantation.')
 
     network_backbone_default = 'resnet_101'
     pre_trained_model_default = 'data/models/pretrained/resnet_101/resnet_v2_101.ckpt'

@@ -1,4 +1,4 @@
-# DeepLab v3
+# DeepLab V3
 
 Lei Mao, Shengjie Lin
 
@@ -8,7 +8,7 @@ Toyota Technological Institute at Chicago
 
 ## Introduction
 
-DeepLab is a series of image semantic segmentation models, whose latest version, i.e. v3+, proves to be the state-of-art. Its major contribution is the use of atrous spatial pyramid pooling (ASPP) operation at the end of the encoder. While the model works extremely well, its open source code is hard to read (at least from my personal perspective). Here we re-implemented DeepLab v3, the earlier version of v3+ (which only additionally employs the decoder architecture), in a much simpler and more understandable way.
+DeepLab is a series of image semantic segmentation models, whose latest version, i.e. v3+, proves to be the state-of-art. Its major contribution is the use of atrous spatial pyramid pooling (ASPP) operation at the end of the encoder. While the model works extremely well, its open source code is hard to read (at least from my personal perspective). Here we re-implemented DeepLab V3, the earlier version of v3+ (which only additionally employs the decoder architecture), in a much simpler and more understandable way.
 
 ## Dependencies
 
@@ -110,7 +110,7 @@ usage: train.py [-h] [--network_backbone NETWORK_BACKBONE]
                 [--model_dir MODEL_DIR] [--log_dir LOG_DIR]
                 [--random_seed RANDOM_SEED]
 
-Train DeepLab v3 for image semantic segmantation.
+Train DeepLab V3 for image semantic segmantation.
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -146,7 +146,7 @@ For simplicity, please run the following command in terminal:
 $ python train.py
 ```
 
-With learning rate of `1e-5`, the mIOU could be greater 0.7 after 20 epochs, which is comparable to the test statistics of DeepLab v3 in the publication.
+With learning rate of `1e-5`, the mIOU could be greater 0.7 after 20 epochs, which is comparable to the test statistics of DeepLab V3 in the publication.
 
 ### Demos
 
